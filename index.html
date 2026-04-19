@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1f6fff">
-  <meta name="description" content="Multiplication Sprint, un jeu mobile et web pour s'entraîner aux multiplications avec chrono, bonus et niveaux.">
+  <meta name="description" content="Multiplication Sprint, un jeu mobile et web pour s'entrainer aux multiplications avec chrono, bonus et niveaux.">
   <title>Multiplication Sprint</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,6 +13,22 @@
   <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
+  <div id="loadingScreen" class="loading-screen" aria-live="polite">
+    <div class="loading-card">
+      <div class="loading-stars" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <p class="eyebrow">Chargement</p>
+      <h1>Multiplication Sprint</h1>
+      <p class="hero-text">Preparation des niveaux, des sons et des animations...</p>
+      <div class="loading-track">
+        <div id="loadingBar" class="loading-bar"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="app-shell">
     <header class="topbar" aria-label="Informations du jeu">
       <div class="brand-badge">
@@ -28,27 +44,39 @@
       <div class="floating floating-star" aria-hidden="true"></div>
       <div class="floating floating-sun" aria-hidden="true"></div>
       <div class="floating floating-cloud" aria-hidden="true"></div>
+      <div class="floating floating-ribbon" aria-hidden="true"></div>
 
       <section id="startScreen" class="screen screen-active" aria-labelledby="startTitle">
         <div class="hero-card">
-          <p class="eyebrow">Jeu éducatif rapide</p>
+          <p class="eyebrow">Jeu educatif rapide</p>
           <h1 id="startTitle">Deviens le champion des multiplications</h1>
           <p class="hero-text">
-            10 niveaux, 10 questions par niveau, un chrono, des bonus et un meilleur score sauvegardé sur ton appareil.
+            Choisis ton mode, clique sur la bonne reponse parmi 5 propositions et valide chaque niveau avec un score suffisant.
           </p>
 
-          <div class="hero-stats" aria-label="Aperçu des règles">
+          <div class="mode-selector" role="radiogroup" aria-label="Choix du mode de jeu">
+            <button id="kidsModeButton" class="mode-card mode-card-active" type="button" data-mode="kids" role="radio" aria-checked="true">
+              <strong>Mode enfant</strong>
+              <span>Questions douces, plus de temps, seuil plus accessible</span>
+            </button>
+            <button id="expertModeButton" class="mode-card" type="button" data-mode="expert" role="radio" aria-checked="false">
+              <strong>Mode expert</strong>
+              <span>Questions plus toniques, chrono plus nerveux, score exigeant</span>
+            </button>
+          </div>
+
+          <div class="hero-stats" aria-label="Apercu des regles">
             <article class="stat-chip">
               <strong>10</strong>
               <span>niveaux</span>
             </article>
             <article class="stat-chip">
-              <strong>10 s</strong>
-              <span>par question</span>
+              <strong>5</strong>
+              <span>reponses par question</span>
             </article>
             <article class="stat-chip">
-              <strong>+ bonus</strong>
-              <span>tous les 3 succès</span>
+              <strong>10</strong>
+              <span>questions par niveau</span>
             </article>
           </div>
 
@@ -67,9 +95,10 @@
         <div class="game-header">
           <div class="pill">Niveau <span id="levelDisplay">1</span>/10</div>
           <div class="pill">Question <span id="questionCountDisplay">1</span>/10</div>
+          <div class="pill">Mode <span id="modeDisplay">Enfant</span></div>
         </div>
 
-        <div class="timer-panel" aria-label="Chronomètre de la question">
+        <div class="timer-panel" aria-label="Chronometre de la question">
           <div class="timer-label-row">
             <span>Temps restant</span>
             <strong id="timerText">10.0 s</strong>
@@ -80,23 +109,12 @@
         </div>
 
         <div class="question-card" id="questionCard">
-          <p class="question-caption">Résous vite et bien</p>
-          <h2 id="questionText" class="question-text">2 × 3</h2>
-          <form id="answerForm" class="answer-form" autocomplete="off">
-            <label for="answerInput" class="sr-only">Ta réponse</label>
-            <input
-              id="answerInput"
-              name="answer"
-              type="number"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              class="answer-input"
-              placeholder="Ta réponse"
-              aria-describedby="feedbackText"
-              required
-            >
-            <button class="secondary-button" type="submit">Valider</button>
-          </form>
+          <div class="question-glow" aria-hidden="true"></div>
+          <p class="question-caption">Clique sur la bonne reponse</p>
+          <h2 id="questionText" class="question-text">2 x 3</h2>
+
+          <div id="answerGrid" class="answer-grid" role="group" aria-label="Choix de reponses"></div>
+
           <p id="feedbackText" class="feedback-text" aria-live="assertive">Bonne chance !</p>
           <div id="bonusBanner" class="bonus-banner" aria-live="polite"></div>
           <div id="particleLayer" class="particle-layer" aria-hidden="true"></div>
@@ -108,17 +126,51 @@
             <strong id="scoreDisplay">0</strong>
           </article>
           <article class="score-card">
-            <span>Série</span>
+            <span>Serie</span>
             <strong id="streakDisplay">0</strong>
           </article>
           <article class="score-card">
-            <span>Précision</span>
+            <span>Precision</span>
             <strong id="accuracyDisplay">100%</strong>
           </article>
           <article class="score-card">
             <span>Record</span>
             <strong id="bestScoreGame">0</strong>
           </article>
+        </div>
+      </section>
+
+      <section id="checkpointScreen" class="screen" aria-labelledby="checkpointTitle">
+        <div class="end-card checkpoint-card">
+          <p class="eyebrow" id="checkpointEyebrow">Fin du niveau</p>
+          <h2 id="checkpointTitle">Bien joue !</h2>
+          <p id="checkpointMessage" class="hero-text">
+            Ton score est suffisant pour passer au niveau suivant.
+          </p>
+
+          <div class="results-grid">
+            <article class="result-item">
+              <span>Score du niveau</span>
+              <strong id="checkpointLevelScore">0</strong>
+            </article>
+            <article class="result-item">
+              <span>Seuil requis</span>
+              <strong id="checkpointRequiredScore">0</strong>
+            </article>
+            <article class="result-item">
+              <span>Total</span>
+              <strong id="checkpointTotalScore">0</strong>
+            </article>
+            <article class="result-item">
+              <span>Precision</span>
+              <strong id="checkpointAccuracy">0%</strong>
+            </article>
+          </div>
+
+          <div class="checkpoint-actions">
+            <button id="checkpointPrimaryButton" class="primary-button" type="button">Continuer</button>
+            <button id="checkpointRetryButton" class="ghost-button" type="button">Retenter le niveau</button>
+          </div>
         </div>
       </section>
 
@@ -140,7 +192,7 @@
               <strong id="finalLevel">1</strong>
             </article>
             <article class="result-item">
-              <span>Précision</span>
+              <span>Precision</span>
               <strong id="finalAccuracy">0%</strong>
             </article>
             <article class="result-item">

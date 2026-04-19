@@ -2,11 +2,21 @@
 
 Jeu web mobile-first de multiplication avec niveaux, chrono, bonus, score, meilleur score local et installation PWA.
 
+## V2 incluse
+
+- reponses a choix multiples avec 5 boutons
+- ecran intermediaire a la fin de chaque niveau
+- validation du passage selon le score du niveau
+- mode `enfant` et mode `expert`
+- ecran de chargement anime
+- sons Web Audio plus dynamiques
+- animations GSAP plus riches
+
 ## Fichiers
 
 - `index.html` : structure des écrans et chargement de GSAP via CDN
 - `style.css` : thème visuel, responsive design, animations CSS légères
-- `script.js` : logique du jeu, timer, score, bonus, stockage local, PWA
+- `script.js` : logique du jeu, timer, score, bonus, modes, checkpoints, stockage local, PWA
 - `manifest.webmanifest` : configuration d'installation sur mobile
 - `sw.js` : cache simple pour fonctionnement plus fluide
 
@@ -63,15 +73,18 @@ Publish Directory: .
 
 ## Fonctionnalités incluses
 
-- 10 niveaux de difficulté
+- 10 niveaux de difficulte
 - 10 questions par niveau
-- chrono animé par question
-- bonus tous les 3 succès consécutifs
-- score basé sur vitesse et progression
+- 5 reponses cliquables par question
+- chrono anime par question
+- bonus tous les 3 succes consecutifs
+- score base sur vitesse et progression
+- validation de niveau selon un seuil de score
 - meilleur score via `localStorage`
-- écran de fin et écran de victoire
+- ecran de chargement, checkpoint, fin et victoire
+- mode enfant et mode expert
 - animations GSAP
-- effets visuels allégés sur mobile et si `prefers-reduced-motion` est activé
+- effets visuels alleges sur mobile et si `prefers-reduced-motion` est active
 
 ## Accessibilité
 
