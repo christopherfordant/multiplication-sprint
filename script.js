@@ -1044,7 +1044,9 @@ function setupInstallPrompt() {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
+    navigator.serviceWorker.register("./sw.js").then((registration) => {
+      registration.update().catch(() => {});
+    }).catch(() => {});
   }
 }
 
@@ -1116,6 +1118,7 @@ function init() {
   setupInstallPrompt();
   registerServiceWorker();
   runLoadingIntro();
+  showScreen(elements.mapScreen);
 }
 
 init();
