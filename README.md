@@ -12,6 +12,14 @@ Jeu web mobile-first de multiplication avec niveaux, chrono, bonus, score, meill
 - sons Web Audio plus dynamiques
 - animations GSAP plus riches
 
+## V3 incluse
+
+- mascotte animee qui accompagne la partie
+- etoiles gagnees a la fin de chaque niveau
+- lecture vocale de la multiplication avec `speechSynthesis`
+- bouton pour relire la question
+- mode `2 joueurs local` avec alternance des tours et scores separes
+
 ## Fichiers
 
 - `index.html` : structure des écrans et chargement de GSAP via CDN

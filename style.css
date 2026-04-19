@@ -5,12 +5,9 @@
   --coral: #ff5f6d;
   --grass: #21c06b;
   --ink: #1e2552;
-  --paper: #fffdf6;
-  --paper-soft: rgba(255, 255, 255, 0.74);
   --shadow: 0 20px 60px rgba(22, 51, 114, 0.18);
   --radius-xl: 32px;
   --radius-lg: 22px;
-  --radius-md: 16px;
   --transition: 220ms ease;
 }
 
@@ -60,27 +57,45 @@ button {
   pointer-events: none;
 }
 
+.loading-card,
+.hero-card,
+.question-card,
+.end-card {
+  border-radius: 32px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.84));
+  box-shadow: var(--shadow);
+}
+
 .loading-card {
   width: min(100%, 460px);
   padding: 34px 28px;
   text-align: center;
-  border-radius: 32px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: var(--shadow);
 }
 
-.loading-stars {
+.loading-stars,
+.stars-row {
   display: flex;
   justify-content: center;
   gap: 10px;
+}
+
+.loading-stars {
   margin-bottom: 16px;
 }
 
-.loading-stars span {
-  width: 18px;
-  height: 18px;
-  background: linear-gradient(180deg, #ffe477, #ffbf29);
-  clip-path: polygon(50% 0%, 61% 36%, 100% 38%, 69% 58%, 79% 100%, 50% 74%, 21% 100%, 31% 58%, 0% 38%, 39% 36%);
+.loading-stars span,
+.star-item {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 1.6rem;
+  color: rgba(255, 191, 41, 0.3);
+}
+
+.star-item.star-on {
+  color: #ffbf29;
+  text-shadow: 0 0 18px rgba(255, 191, 41, 0.45);
 }
 
 .loading-track {
@@ -106,7 +121,7 @@ button {
 }
 
 .topbar {
-  max-width: 980px;
+  max-width: 1040px;
   width: 100%;
   margin: 0 auto 16px;
   display: flex;
@@ -122,7 +137,9 @@ button {
 .result-item,
 .best-score-card,
 .ghost-button,
-.mode-card {
+.mode-card,
+.toggle-chip,
+.player-card {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -151,17 +168,24 @@ button {
 .ghost-button,
 .primary-button,
 .answer-option,
-.mode-card {
+.mode-card,
+.chip-button {
   border-radius: 999px;
   transition: transform var(--transition), box-shadow var(--transition), background var(--transition), border-color var(--transition);
 }
 
-.ghost-button {
+.ghost-button,
+.chip-button {
   padding: 12px 18px;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.74);
   color: var(--ink);
   box-shadow: var(--shadow);
   font-weight: 700;
+}
+
+.chip-button-active {
+  background: linear-gradient(180deg, #1f6fff, #0f56d9);
+  color: #fff;
 }
 
 .primary-button {
@@ -178,10 +202,12 @@ button {
 .primary-button:hover,
 .answer-option:hover,
 .mode-card:hover,
+.chip-button:hover,
 .ghost-button:focus-visible,
 .primary-button:focus-visible,
 .answer-option:focus-visible,
-.mode-card:focus-visible {
+.mode-card:focus-visible,
+.chip-button:focus-visible {
   transform: translateY(-2px) scale(1.01);
 }
 
@@ -189,7 +215,7 @@ button {
   position: relative;
   overflow: hidden;
   flex: 1;
-  max-width: 980px;
+  max-width: 1040px;
   width: 100%;
   margin: 0 auto;
   display: grid;
@@ -269,7 +295,7 @@ button {
 }
 
 .screen {
-  width: min(100%, 760px);
+  width: min(100%, 800px);
   display: none;
   position: relative;
   z-index: 1;
@@ -277,15 +303,6 @@ button {
 
 .screen-active {
   display: block;
-}
-
-.hero-card,
-.question-card,
-.end-card {
-  position: relative;
-  border-radius: var(--radius-xl);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.82));
-  box-shadow: var(--shadow);
 }
 
 .hero-card,
@@ -325,21 +342,44 @@ h1 {
   font-size: clamp(1rem, 2vw, 1.2rem);
 }
 
+.selection-grid,
 .mode-selector,
 .hero-stats,
 .results-grid,
 .scoreboard,
 .game-header,
-.checkpoint-actions {
+.checkpoint-actions,
+.player-panel,
+.feature-strip {
   display: grid;
   gap: 14px;
 }
 
-.mode-selector {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+.selection-grid {
+  gap: 18px;
 }
 
-.mode-card {
+.selection-block {
+  display: grid;
+  gap: 10px;
+}
+
+.selection-title {
+  margin: 0;
+  font-family: "Fredoka", sans-serif;
+  font-size: 1rem;
+  color: var(--ocean);
+}
+
+.mode-selector,
+.feature-strip,
+.player-panel {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.mode-card,
+.toggle-chip,
+.player-card {
   padding: 18px 16px;
   text-align: left;
   border: 3px solid transparent;
@@ -347,19 +387,36 @@ h1 {
 }
 
 .mode-card strong,
-.mode-card span {
+.mode-card span,
+.player-card span,
+.player-card strong,
+.toggle-chip span,
+.toggle-chip strong {
   display: block;
 }
 
-.mode-card strong {
+.mode-card strong,
+.player-card strong {
   margin-bottom: 6px;
   font-family: "Fredoka", sans-serif;
 }
 
-.mode-card-active {
+.mode-card-active,
+.player-card-active {
   border-color: rgba(31, 111, 255, 0.55);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(113, 197, 255, 0.18));
   box-shadow: 0 16px 32px rgba(31, 111, 255, 0.16);
+}
+
+.toggle-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mascot-chip {
+  justify-content: center;
 }
 
 .hero-stats,
@@ -453,15 +510,99 @@ h1 {
   background: radial-gradient(circle, rgba(255, 213, 74, 0.45), transparent 68%);
 }
 
+.mascot-row {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.mascot-avatar {
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffd54a, #ffad2f);
+  box-shadow: 0 16px 28px rgba(255, 173, 47, 0.28);
+}
+
+.mascot-face {
+  position: relative;
+  width: 54px;
+  height: 54px;
+}
+
+.eye,
+.mouth {
+  position: absolute;
+  background: var(--ink);
+}
+
+.eye {
+  top: 14px;
+  width: 8px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.eye:first-child {
+  left: 12px;
+}
+
+.eye:nth-child(2) {
+  right: 12px;
+}
+
+.mouth {
+  left: 17px;
+  bottom: 8px;
+  width: 20px;
+  height: 8px;
+  border-radius: 0 0 999px 999px;
+}
+
+.mascot-bubble {
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.mascot-bubble strong {
+  display: block;
+  margin-bottom: 6px;
+  font-family: "Fredoka", sans-serif;
+}
+
+.mascot-bubble p {
+  margin: 0;
+}
+
+.question-tools {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
 .question-caption {
-  margin: 0 0 8px;
+  margin: 0;
   font-family: "Fredoka", sans-serif;
   color: var(--coral);
+}
+
+.speak-button {
+  padding: 10px 16px;
 }
 
 .question-text {
   position: relative;
   z-index: 1;
+  margin-top: 8px;
   font-size: clamp(3rem, 10vw, 5rem);
   text-shadow: 0 6px 0 rgba(31, 111, 255, 0.08);
 }
@@ -590,16 +731,25 @@ body.screen-shake .game-frame {
     border-radius: 28px;
   }
 
+  .loading-card,
   .hero-card,
   .question-card,
-  .end-card,
-  .loading-card {
+  .end-card {
     padding: 24px 16px 22px;
   }
 
   .game-header,
-  .answer-grid {
+  .answer-grid,
+  .player-panel,
+  .feature-strip,
+  .mode-selector,
+  .question-tools,
+  .mascot-row {
     grid-template-columns: 1fr;
+  }
+
+  .question-tools {
+    display: grid;
   }
 
   .answer-option:nth-child(5) {
