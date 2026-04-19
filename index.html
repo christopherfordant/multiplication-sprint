@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1f6fff">
-  <meta name="description" content="Multiplication Sprint, un jeu mobile et web de multiplications avec voix, etoiles, mascotte et mode 2 joueurs.">
+  <meta name="description" content="Multiplication Sprint, une aventure de multiplications avec carte du monde, mascotte, profils enfant et tableau de bord parent.">
   <title>Multiplication Sprint</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,7 +22,7 @@
       </div>
       <p class="eyebrow">Chargement</p>
       <h1>Multiplication Sprint</h1>
-      <p class="hero-text">Preparation de la mascotte, des niveaux, des sons et des etoiles...</p>
+      <p class="hero-text">Preparation de la carte, des profils, des recompenses et du chateau final...</p>
       <div class="loading-track">
         <div id="loadingBar" class="loading-bar"></div>
       </div>
@@ -41,102 +41,146 @@
     </header>
 
     <main class="game-frame">
-      <div class="floating floating-star" aria-hidden="true"></div>
-      <div class="floating floating-sun" aria-hidden="true"></div>
-      <div class="floating floating-cloud" aria-hidden="true"></div>
-      <div class="floating floating-ribbon" aria-hidden="true"></div>
-
       <section id="startScreen" class="screen screen-active" aria-labelledby="startTitle">
-        <div class="hero-card">
-          <p class="eyebrow">Jeu educatif rapide</p>
-          <h1 id="startTitle">La V3 est la</h1>
+        <div class="hero-card hub-card">
+          <p class="eyebrow">Aventure educative</p>
+          <h1 id="startTitle">Choisis ton heros et pars vers le chateau</h1>
           <p class="hero-text">
-            Choisis ton mode, joue seul ou a 2 joueurs, ecoute la multiplication lue a voix haute et gagne jusqu'a 3 etoiles par niveau.
+            Regle ton aventure, visualise la progression des enfants et lance la carte du monde comme dans un jeu de plateforme.
           </p>
 
-          <div class="profile-panel">
-            <div class="profile-header">
-              <div>
+          <div class="hub-grid">
+            <section class="hub-panel">
+              <div class="panel-title-row">
                 <p class="selection-title">Profil enfant</p>
-                <strong id="activeProfileName">Champion</strong>
+                <div class="profile-mini">
+                  <span>Badges</span>
+                  <strong id="badgeCountStart">0</strong>
+                </div>
               </div>
-              <div class="profile-mini">
-                <span>Badges</span>
-                <strong id="badgeCountStart">0</strong>
+
+              <div class="profile-form">
+                <label for="profileNameInput" class="sr-only">Prenom du profil</label>
+                <input id="profileNameInput" class="profile-input" type="text" maxlength="18" placeholder="Entre un prenom">
+                <button id="saveProfileButton" class="ghost-button" type="button">Sauver</button>
+              </div>
+
+              <div class="hero-profile-card">
+                <div class="mini-mascot" aria-hidden="true"></div>
+                <div>
+                  <span>Profil actif</span>
+                  <strong id="activeProfileName">Champion</strong>
+                  <p id="profileProgressText" class="tiny-text">Niveau debloque: 1</p>
+                </div>
+              </div>
+
+              <div id="badgeShelfStart" class="badge-shelf" aria-label="Badges debloques"></div>
+            </section>
+
+            <section class="hub-panel">
+              <p class="selection-title">Reglages d'aventure</p>
+
+              <div class="selection-block">
+                <p class="selection-subtitle">Difficulte</p>
+                <div class="mode-selector" role="radiogroup" aria-label="Choix du mode de jeu">
+                  <button id="kidsModeButton" class="mode-card mode-card-active" type="button" role="radio" aria-checked="true">
+                    <strong>Mode enfant</strong>
+                    <span>Plus de temps et seuil plus doux</span>
+                  </button>
+                  <button id="expertModeButton" class="mode-card" type="button" role="radio" aria-checked="false">
+                    <strong>Mode expert</strong>
+                    <span>Chrono plus nerveux et boss plus rude</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="selection-block">
+                <p class="selection-subtitle">Session</p>
+                <div class="mode-selector" role="radiogroup" aria-label="Nombre de joueurs">
+                  <button id="soloModeButton" class="mode-card mode-card-active" type="button" role="radio" aria-checked="true">
+                    <strong>Solo</strong>
+                    <span>Une aventure classique avec mascotte</span>
+                  </button>
+                  <button id="duoModeButton" class="mode-card" type="button" role="radio" aria-checked="false">
+                    <strong>2 joueurs local</strong>
+                    <span>Alternance des tours sur la carte</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="feature-strip">
+                <div class="toggle-chip">
+                  <span>Lecture vocale</span>
+                  <button id="voiceToggleButton" class="chip-button chip-button-active" type="button" aria-pressed="true">Activee</button>
+                </div>
+                <div class="toggle-chip mascot-chip">
+                  <span>Mascotte</span>
+                  <strong id="mascotName">Milo</strong>
+                </div>
+              </div>
+
+              <button id="openMapButton" class="primary-button" type="button">Entrer sur la carte</button>
+            </section>
+          </div>
+
+          <div class="dashboard-grid">
+            <section class="hub-panel">
+              <p class="selection-title">Tableau de bord parent</p>
+              <div id="parentDashboard" class="dashboard-cards"></div>
+            </section>
+
+            <section class="hub-panel">
+              <p class="selection-title">Collection de recompenses</p>
+              <div id="rewardCollection" class="reward-grid"></div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section id="mapScreen" class="screen" aria-labelledby="mapTitle">
+        <div class="map-screen-shell">
+          <div class="map-header">
+            <div class="brand-badge map-chip">
+              <span>Explorateur</span>
+              <strong id="mapProfileName">Champion</strong>
+            </div>
+            <div class="map-stats">
+              <div class="pill">Progression <span id="mapProgressDisplay">1/10</span></div>
+              <div class="pill">Etoiles <span id="mapStarsDisplay">0</span></div>
+              <div class="pill">Record <span id="mapBestScoreDisplay">0</span></div>
+            </div>
+          </div>
+
+          <div class="world-map" id="worldMap">
+            <div class="world-backdrop"></div>
+            <div class="castle-silhouette" aria-hidden="true">
+              <div class="tower left"></div>
+              <div class="tower right"></div>
+              <div class="castle-main"></div>
+              <div class="boss-orb"></div>
+            </div>
+            <div id="mapPath" class="map-path" aria-hidden="true"></div>
+            <div id="mapNodes" class="map-nodes" aria-label="Carte des niveaux"></div>
+            <div id="mapMascot" class="map-mascot" aria-hidden="true">
+              <div class="map-mascot-face">
+                <span class="eye"></span>
+                <span class="eye"></span>
+                <span class="mouth"></span>
               </div>
             </div>
-            <div class="profile-form">
-              <label for="profileNameInput" class="sr-only">Prenom du profil</label>
-              <input id="profileNameInput" class="profile-input" type="text" maxlength="18" placeholder="Entre un prenom">
-              <button id="saveProfileButton" class="ghost-button" type="button">Sauver le profil</button>
-            </div>
-            <div id="badgeShelfStart" class="badge-shelf" aria-label="Badges debloques"></div>
           </div>
 
-          <div class="selection-grid">
-            <div class="selection-block">
-              <p class="selection-title">Difficulte</p>
-              <div class="mode-selector" role="radiogroup" aria-label="Choix du mode de jeu">
-                <button id="kidsModeButton" class="mode-card mode-card-active" type="button" data-mode="kids" role="radio" aria-checked="true">
-                  <strong>Mode enfant</strong>
-                  <span>Questions douces, plus de temps, seuil plus accessible</span>
-                </button>
-                <button id="expertModeButton" class="mode-card" type="button" data-mode="expert" role="radio" aria-checked="false">
-                  <strong>Mode expert</strong>
-                  <span>Questions plus toniques, chrono plus nerveux, score exigeant</span>
-                </button>
-              </div>
+          <div class="map-footer">
+            <div class="map-selected-card">
+              <p class="selection-title">Case selectionnee</p>
+              <strong id="selectedLevelLabel">Niveau 1</strong>
+              <p id="selectedLevelDescription" class="tiny-text">Les premiers calculs du sentier enchanté.</p>
             </div>
-
-            <div class="selection-block">
-              <p class="selection-title">Session</p>
-              <div class="mode-selector" role="radiogroup" aria-label="Nombre de joueurs">
-                <button id="soloModeButton" class="mode-card mode-card-active" type="button" data-session="solo" role="radio" aria-checked="true">
-                  <strong>Solo</strong>
-                  <span>Une aventure classique avec ta mascotte coach</span>
-                </button>
-                <button id="duoModeButton" class="mode-card" type="button" data-session="duo" role="radio" aria-checked="false">
-                  <strong>2 joueurs local</strong>
-                  <span>Les joueurs alternent a chaque question sur le meme ecran</span>
-                </button>
-              </div>
+            <div class="map-actions">
+              <button id="backToHubButton" class="ghost-button" type="button">Retour accueil</button>
+              <button id="enterLevelButton" class="primary-button" type="button">Entrer dans le niveau</button>
             </div>
           </div>
-
-          <div class="feature-strip">
-            <div class="toggle-chip">
-              <span>Lecture vocale</span>
-              <button id="voiceToggleButton" class="chip-button chip-button-active" type="button" aria-pressed="true">Activee</button>
-            </div>
-            <div class="toggle-chip mascot-chip">
-              <span>Mascotte</span>
-              <strong id="mascotName">Milo</strong>
-            </div>
-          </div>
-
-          <div class="hero-stats" aria-label="Apercu des regles">
-            <article class="stat-chip">
-              <strong>10</strong>
-              <span>niveaux</span>
-            </article>
-            <article class="stat-chip">
-              <strong>5</strong>
-              <span>reponses par question</span>
-            </article>
-            <article class="stat-chip">
-              <strong>3★</strong>
-              <span>recompense max par niveau</span>
-            </article>
-          </div>
-
-          <div class="best-score-card">
-            <span>Meilleur score</span>
-            <strong id="bestScoreStart">0</strong>
-          </div>
-
-          <button id="startButton" class="primary-button" type="button">
-            Jouer maintenant
-          </button>
         </div>
       </section>
 
@@ -193,7 +237,7 @@
           </div>
 
           <div class="question-tools">
-            <p class="question-caption">Clique sur la bonne reponse</p>
+            <p class="question-caption" id="questionBadge">Clique sur la bonne reponse</p>
             <button id="speakButton" class="ghost-button speak-button" type="button">Lire la question</button>
           </div>
           <h2 id="questionText" class="question-text">2 x 3</h2>
@@ -230,7 +274,7 @@
           <p class="eyebrow" id="checkpointEyebrow">Fin du niveau</p>
           <h2 id="checkpointTitle">Bien joue !</h2>
           <p id="checkpointMessage" class="hero-text">
-            Ton score est suffisant pour passer au niveau suivant.
+            Ton score est suffisant pour revenir sur la carte.
           </p>
 
           <div id="checkpointStars" class="stars-row" aria-label="Etoiles du niveau">
@@ -262,16 +306,16 @@
           <div id="badgeShelfCheckpoint" class="badge-shelf" aria-label="Nouveaux badges"></div>
 
           <div class="checkpoint-actions">
-            <button id="checkpointPrimaryButton" class="primary-button" type="button">Continuer</button>
+            <button id="checkpointPrimaryButton" class="primary-button" type="button">Retour a la carte</button>
             <button id="checkpointRetryButton" class="ghost-button" type="button">Retenter le niveau</button>
           </div>
         </div>
       </section>
 
       <section id="endScreen" class="screen" aria-labelledby="endTitle">
-        <div class="end-card">
+        <div class="end-card finale-card">
           <p class="eyebrow" id="endEyebrow">Fin de partie</p>
-          <h2 id="endTitle">Belle tentative !</h2>
+          <h2 id="endTitle">Le chateau est sauve !</h2>
           <p id="endMessage" class="hero-text">
             Tu peux recommencer tout de suite et battre ton record.
           </p>
@@ -304,7 +348,10 @@
           <p id="winnerMessage" class="hero-text"></p>
           <div id="badgeShelfEnd" class="badge-shelf" aria-label="Badges du profil"></div>
 
-          <button id="restartButton" class="primary-button" type="button">Rejouer</button>
+          <div class="checkpoint-actions">
+            <button id="returnToMapButton" class="ghost-button" type="button">Retour a la carte</button>
+            <button id="restartButton" class="primary-button" type="button">Rejouer depuis le debut</button>
+          </div>
         </div>
       </section>
     </main>

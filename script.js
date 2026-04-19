@@ -15,8 +15,22 @@ const BADGES = {
   perfect_level: { title: "Sans faute", description: "Finir un niveau a 100% de precision" },
   expert_brain: { title: "Cerveau expert", description: "Valider un niveau en mode expert" },
   duo_winner: { title: "Duel gagne", description: "Remporter une partie a 2 joueurs" },
-  hundred_points: { title: "Mega score", description: "Depasser 1000 points" }
+  hundred_points: { title: "Mega score", description: "Depasser 1000 points" },
+  castle_hero: { title: "Hero du chateau", description: "Battre le boss final du chateau" }
 };
+
+const MAP_LEVELS = [
+  { x: 8, y: 74, title: "Prairie des 2", description: "Les premiers pas du sentier enchanté." },
+  { x: 18, y: 56, title: "Pont des etoiles", description: "Des multiplications simples sur le vieux pont." },
+  { x: 31, y: 70, title: "Colline des nuages", description: "Le chemin grimpe avec quelques revisions." },
+  { x: 42, y: 49, title: "Foret sucree", description: "Les tables se melangent dans la foret." },
+  { x: 54, y: 66, title: "Lac des lucioles", description: "Un niveau plus rythmé au bord de l'eau." },
+  { x: 65, y: 46, title: "Falaises d'or", description: "Le vent souffle, les calculs s'accelerent." },
+  { x: 74, y: 62, title: "Passage lunaire", description: "Le sentier devient plus technique." },
+  { x: 81, y: 40, title: "Tour du veilleur", description: "Les meilleures tables reviennent t'entrainer." },
+  { x: 88, y: 58, title: "Cour du boss", description: "Dernier camp avant le chateau." },
+  { x: 92, y: 18, title: "Chateau du boss", description: "Le boss final garde le chateau des multiplications.", boss: true }
+];
 
 const MODES = {
   kids: {
@@ -65,10 +79,14 @@ const elements = {
   loadingScreen: document.getElementById("loadingScreen"),
   loadingBar: document.getElementById("loadingBar"),
   startScreen: document.getElementById("startScreen"),
+  mapScreen: document.getElementById("mapScreen"),
   gameScreen: document.getElementById("gameScreen"),
   checkpointScreen: document.getElementById("checkpointScreen"),
   endScreen: document.getElementById("endScreen"),
-  startButton: document.getElementById("startButton"),
+  openMapButton: document.getElementById("openMapButton"),
+  backToHubButton: document.getElementById("backToHubButton"),
+  enterLevelButton: document.getElementById("enterLevelButton"),
+  returnToMapButton: document.getElementById("returnToMapButton"),
   restartButton: document.getElementById("restartButton"),
   installButton: document.getElementById("installButton"),
   kidsModeButton: document.getElementById("kidsModeButton"),
@@ -84,17 +102,29 @@ const elements = {
   badgeShelfStart: document.getElementById("badgeShelfStart"),
   badgeShelfCheckpoint: document.getElementById("badgeShelfCheckpoint"),
   badgeShelfEnd: document.getElementById("badgeShelfEnd"),
+  profileProgressText: document.getElementById("profileProgressText"),
+  parentDashboard: document.getElementById("parentDashboard"),
+  rewardCollection: document.getElementById("rewardCollection"),
   checkpointPrimaryButton: document.getElementById("checkpointPrimaryButton"),
   checkpointRetryButton: document.getElementById("checkpointRetryButton"),
   bestScoreStart: document.getElementById("bestScoreStart"),
   bestScoreGame: document.getElementById("bestScoreGame"),
   bestScoreEnd: document.getElementById("bestScoreEnd"),
+  mapProfileName: document.getElementById("mapProfileName"),
+  mapProgressDisplay: document.getElementById("mapProgressDisplay"),
+  mapStarsDisplay: document.getElementById("mapStarsDisplay"),
+  mapBestScoreDisplay: document.getElementById("mapBestScoreDisplay"),
+  mapNodes: document.getElementById("mapNodes"),
+  mapMascot: document.getElementById("mapMascot"),
+  selectedLevelLabel: document.getElementById("selectedLevelLabel"),
+  selectedLevelDescription: document.getElementById("selectedLevelDescription"),
   levelDisplay: document.getElementById("levelDisplay"),
   questionCountDisplay: document.getElementById("questionCountDisplay"),
   modeDisplay: document.getElementById("modeDisplay"),
   timerText: document.getElementById("timerText"),
   timerBar: document.getElementById("timerBar"),
   questionText: document.getElementById("questionText"),
+  questionBadge: document.getElementById("questionBadge"),
   answerGrid: document.getElementById("answerGrid"),
   feedbackText: document.getElementById("feedbackText"),
   bonusBanner: document.getElementById("bonusBanner"),
@@ -106,6 +136,7 @@ const elements = {
   playerOneScore: document.getElementById("playerOneScore"),
   playerTwoScore: document.getElementById("playerTwoScore"),
   starsSummary: document.getElementById("starsSummary"),
+  mascotName: document.getElementById("mascotName"),
   mascotSpeech: document.getElementById("mascotSpeech"),
   mascotAvatar: document.getElementById("mascotAvatar"),
   checkpointEyebrow: document.getElementById("checkpointEyebrow"),
@@ -133,6 +164,7 @@ const state = {
   sessionMode: "solo",
   voiceEnabled: true,
   level: 1,
+  selectedLevel: 1,
   questionIndex: 0,
   score: 0,
   levelScore: 0,
@@ -143,6 +175,7 @@ const state = {
   streak: 0,
   bestScore: readBestScore(),
   currentQuestion: null,
+  currentQuestionSourceLevel: 1,
   answerOptions: [],
   levelStartSnapshot: null,
   timeLimit: MODES.kids.baseTime,
@@ -162,7 +195,9 @@ const state = {
   activeProfileId: localStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY) || "champion",
   unlockedBadges: [],
   lastUnlockedBadges: [],
-  preferredVoice: null
+  preferredVoice: null,
+  highestUnlockedLevel: 1,
+  levelStarsMap: Array(TOTAL_LEVELS).fill(0)
 };
 
 function readBestScore() {
@@ -175,6 +210,58 @@ function readProfiles() {
   } catch {
     return {};
   }
+}
+
+function defaultProfile(name = "Champion") {
+  return {
+    name,
+    badges: [],
+    bestScore: 0,
+    highestUnlockedLevel: 1,
+    levelStars: Array(TOTAL_LEVELS).fill(0),
+    stats: {
+      gamesPlayed: 0,
+      levelsCleared: 0,
+      totalStars: 0,
+      bestLevel: 1,
+      correctAnswers: 0,
+      totalAnswers: 0
+    }
+  };
+}
+
+function getProfileRecord(id, fallbackName = "Champion") {
+  const existing = state.profiles[id];
+  const base = defaultProfile(fallbackName);
+  if (!existing) {
+    return base;
+  }
+  return {
+    ...base,
+    ...existing,
+    badges: Array.isArray(existing.badges) ? existing.badges : [],
+    levelStars: Array.isArray(existing.levelStars) ? [...existing.levelStars, ...Array(Math.max(0, TOTAL_LEVELS - existing.levelStars.length)).fill(0)].slice(0, TOTAL_LEVELS) : [...base.levelStars],
+    stats: {
+      ...base.stats,
+      ...(existing.stats || {})
+    }
+  };
+}
+
+function persistProfiles() {
+  const current = getProfileRecord(state.activeProfileId, state.profileName);
+  current.name = state.profileName;
+  current.badges = [...state.unlockedBadges];
+  current.bestScore = Math.max(current.bestScore || 0, state.bestScore);
+  current.highestUnlockedLevel = state.highestUnlockedLevel;
+  current.levelStars = [...state.levelStarsMap];
+  current.stats = {
+    ...current.stats,
+    totalStars: state.levelStarsMap.reduce((sum, value) => sum + value, 0)
+  };
+  state.profiles[state.activeProfileId] = current;
+  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profiles));
+  localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, state.activeProfileId);
 }
 
 function saveBestScore(score) {
@@ -190,29 +277,26 @@ function normalizeProfileId(name) {
 }
 
 function ensureActiveProfile() {
-  const savedProfile = state.profiles[state.activeProfileId];
-  if (savedProfile) {
-    state.profileName = savedProfile.name;
-    state.unlockedBadges = savedProfile.badges || [];
-    state.bestScore = Math.max(state.bestScore, savedProfile.bestScore || 0);
-    return;
-  }
-  state.profiles[state.activeProfileId] = { name: "Champion", badges: [], bestScore: state.bestScore };
-  state.profileName = "Champion";
-  state.unlockedBadges = [];
-  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profiles));
+  const profile = getProfileRecord(state.activeProfileId, "Champion");
+  state.profileName = profile.name;
+  state.unlockedBadges = [...profile.badges];
+  state.highestUnlockedLevel = profile.highestUnlockedLevel || 1;
+  state.levelStarsMap = [...profile.levelStars];
+  state.bestScore = Math.max(state.bestScore, profile.bestScore || 0);
+  state.profiles[state.activeProfileId] = profile;
+  persistProfiles();
 }
 
-function persistProfiles() {
-  const current = state.profiles[state.activeProfileId] || {};
-  state.profiles[state.activeProfileId] = {
-    ...current,
-    name: state.profileName,
-    badges: [...state.unlockedBadges],
-    bestScore: Math.max(current.bestScore || 0, state.bestScore)
-  };
-  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profiles));
-  localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, state.activeProfileId);
+function switchToProfile(profileId, name) {
+  state.activeProfileId = profileId;
+  const profile = getProfileRecord(profileId, name);
+  state.profileName = profile.name;
+  state.unlockedBadges = [...profile.badges];
+  state.highestUnlockedLevel = profile.highestUnlockedLevel || 1;
+  state.levelStarsMap = [...profile.levelStars];
+  state.bestScore = Math.max(readBestScore(), profile.bestScore || 0);
+  state.selectedLevel = Math.min(state.highestUnlockedLevel, TOTAL_LEVELS);
+  persistProfiles();
 }
 
 function renderBadgeShelf(container, badgeIds, highlight = []) {
@@ -223,16 +307,52 @@ function renderBadgeShelf(container, badgeIds, highlight = []) {
   }
   badgeIds.forEach((badgeId) => {
     const meta = BADGES[badgeId];
-    if (!meta) {
-      return;
-    }
+    if (!meta) return;
     const badge = document.createElement("article");
     badge.className = "badge-chip";
-    if (highlight.includes(badgeId)) {
-      badge.classList.add("badge-chip-new");
-    }
+    if (highlight.includes(badgeId)) badge.classList.add("badge-chip-new");
     badge.innerHTML = `<strong>${meta.title}</strong><span>${meta.description}</span>`;
     container.appendChild(badge);
+  });
+}
+
+function renderRewardCollection() {
+  elements.rewardCollection.innerHTML = "";
+  const rewards = Object.entries(BADGES);
+  rewards.forEach(([id, meta]) => {
+    const unlocked = state.unlockedBadges.includes(id);
+    const card = document.createElement("article");
+    card.className = "reward-card";
+    card.style.opacity = unlocked ? "1" : "0.55";
+    card.innerHTML = `<strong>${meta.title}</strong><span>${unlocked ? meta.description : "Encore verrouille"}</span>`;
+    elements.rewardCollection.appendChild(card);
+  });
+}
+
+function renderParentDashboard() {
+  elements.parentDashboard.innerHTML = "";
+  const ids = Object.keys(state.profiles);
+  if (!ids.length) {
+    elements.parentDashboard.innerHTML = "<article class=\"dashboard-card\"><strong>Aucun profil</strong><span>Cree un premier profil enfant.</span></article>";
+    return;
+  }
+  ids.forEach((id) => {
+    const profile = getProfileRecord(id, "Champion");
+    const accuracy = profile.stats.totalAnswers ? Math.round((profile.stats.correctAnswers / profile.stats.totalAnswers) * 100) : 0;
+    const card = document.createElement("article");
+    card.className = "dashboard-card";
+    if (id === state.activeProfileId) {
+      card.style.borderColor = "rgba(31, 111, 255, 0.48)";
+    }
+    card.innerHTML = `
+      <strong>${profile.name}</strong>
+      <span>Parties: ${profile.stats.gamesPlayed}</span>
+      <span>Niveaux valides: ${profile.stats.levelsCleared}</span>
+      <span>Etoiles: ${profile.stats.totalStars}</span>
+      <span>Precision: ${accuracy}%</span>
+      <span>Plus haut niveau: ${profile.stats.bestLevel}</span>
+    `;
+    elements.parentDashboard.appendChild(card);
   });
 }
 
@@ -240,28 +360,27 @@ function updateProfileUI() {
   elements.activeProfileName.textContent = state.profileName;
   elements.profileNameInput.value = state.profileName === "Champion" ? "" : state.profileName;
   elements.badgeCountStart.textContent = state.unlockedBadges.length;
+  elements.profileProgressText.textContent = `Niveau debloque: ${state.highestUnlockedLevel}`;
+  elements.mapProfileName.textContent = state.profileName;
   renderBadgeShelf(elements.badgeShelfStart, state.unlockedBadges);
   renderBadgeShelf(elements.badgeShelfEnd, state.unlockedBadges);
+  renderRewardCollection();
+  renderParentDashboard();
 }
 
 function saveProfileFromInput() {
   const rawName = elements.profileNameInput.value.trim();
   const nextName = rawName || "Champion";
-  state.activeProfileId = normalizeProfileId(nextName);
-  const existing = state.profiles[state.activeProfileId];
-  state.profileName = nextName;
-  state.unlockedBadges = existing?.badges || [];
-  state.bestScore = Math.max(readBestScore(), existing?.bestScore || 0);
-  persistProfiles();
+  const nextId = normalizeProfileId(nextName);
+  switchToProfile(nextId, nextName);
   updateBestScoreDisplays();
   updateProfileUI();
-  setMascotSpeech(`Salut ${state.profileName} ! Ton profil est pret.`);
+  renderMap();
+  setMascotSpeech(`Salut ${state.profileName} ! La carte est prete pour toi.`);
 }
 
 function unlockBadge(badgeId) {
-  if (state.unlockedBadges.includes(badgeId)) {
-    return;
-  }
+  if (state.unlockedBadges.includes(badgeId)) return;
   state.unlockedBadges.push(badgeId);
   state.lastUnlockedBadges.push(badgeId);
   persistProfiles();
@@ -296,14 +415,11 @@ function setMascotSpeech(message) {
   elements.mascotSpeech.textContent = message;
   if (window.gsap && !REDUCED_MOTION) {
     gsap.fromTo(elements.mascotAvatar, { rotate: -3, y: 0 }, { rotate: 3, y: -4, duration: 0.14, yoyo: true, repeat: 1, ease: "power1.inOut" });
-    gsap.fromTo(elements.mascotSpeech, { opacity: 0.5 }, { opacity: 1, duration: 0.2 });
   }
 }
 
 function selectPreferredVoice() {
-  if (!("speechSynthesis" in window)) {
-    return;
-  }
+  if (!("speechSynthesis" in window)) return;
   const voices = window.speechSynthesis.getVoices();
   const frenchVoices = voices.filter((voice) => voice.lang.toLowerCase().startsWith("fr"));
   state.preferredVoice =
@@ -313,18 +429,8 @@ function selectPreferredVoice() {
     null;
 }
 
-function animateFloatingDecor() {
-  if (!window.gsap || REDUCED_MOTION) {
-    return;
-  }
-  gsap.to(".floating-star", { y: 18, rotation: 9, duration: 3.2, repeat: -1, yoyo: true, ease: "sine.inOut" });
-  gsap.to(".floating-sun", { y: -10, duration: 4, repeat: -1, yoyo: true, ease: "sine.inOut" });
-  gsap.to(".floating-cloud", { x: 18, duration: 6, repeat: -1, yoyo: true, ease: "sine.inOut" });
-  gsap.to(".floating-ribbon", { x: -20, rotation: -10, duration: 4.5, repeat: -1, yoyo: true, ease: "sine.inOut" });
-}
-
 function showScreen(screen) {
-  [elements.startScreen, elements.gameScreen, elements.checkpointScreen, elements.endScreen]
+  [elements.startScreen, elements.mapScreen, elements.gameScreen, elements.checkpointScreen, elements.endScreen]
     .forEach((node) => node.classList.remove("screen-active"));
   screen.classList.add("screen-active");
 }
@@ -333,34 +439,7 @@ function updateBestScoreDisplays() {
   elements.bestScoreStart.textContent = state.bestScore;
   elements.bestScoreGame.textContent = state.bestScore;
   elements.bestScoreEnd.textContent = state.bestScore;
-}
-
-function updatePlayerPanel() {
-  elements.activePlayerLabel.textContent = state.sessionMode === "duo" ? `Joueur ${state.currentPlayer + 1}` : state.profileName;
-  elements.playerOneScore.textContent = state.playerScores[0];
-  elements.playerTwoScore.textContent = state.sessionMode === "duo" ? state.playerScores[1] : "-";
-  elements.starsSummary.textContent = `${state.starsEarned}★`;
-}
-
-function updateScoreboard() {
-  elements.scoreDisplay.textContent = state.score;
-  elements.streakDisplay.textContent = state.streak;
-  elements.accuracyDisplay.textContent = `${getAccuracy(state.correctAnswers, state.totalAttempts)}%`;
-  elements.levelDisplay.textContent = state.level;
-  elements.questionCountDisplay.textContent = Math.min(state.questionIndex + 1, QUESTIONS_PER_LEVEL);
-  elements.modeDisplay.textContent = getModeConfig().label;
-  updatePlayerPanel();
-}
-
-function setFeedback(message, type = "") {
-  elements.feedbackText.textContent = message;
-  elements.feedbackText.classList.remove("feedback-success", "feedback-error");
-  if (type === "success") {
-    elements.feedbackText.classList.add("feedback-success");
-  }
-  if (type === "error") {
-    elements.feedbackText.classList.add("feedback-error");
-  }
+  elements.mapBestScoreDisplay.textContent = state.bestScore;
 }
 
 function setMode(mode) {
@@ -387,25 +466,42 @@ function setVoiceEnabled(enabled) {
   elements.voiceToggleButton.setAttribute("aria-pressed", String(enabled));
 }
 
+function updatePlayerPanel() {
+  elements.activePlayerLabel.textContent = state.sessionMode === "duo" ? `Joueur ${state.currentPlayer + 1}` : state.profileName;
+  elements.playerOneScore.textContent = state.playerScores[0];
+  elements.playerTwoScore.textContent = state.sessionMode === "duo" ? state.playerScores[1] : "-";
+  elements.starsSummary.textContent = `${state.starsEarned}★`;
+}
+
+function updateScoreboard() {
+  elements.scoreDisplay.textContent = state.score;
+  elements.streakDisplay.textContent = state.streak;
+  elements.accuracyDisplay.textContent = `${getAccuracy(state.correctAnswers, state.totalAttempts)}%`;
+  elements.levelDisplay.textContent = state.level;
+  elements.questionCountDisplay.textContent = Math.min(state.questionIndex + 1, QUESTIONS_PER_LEVEL);
+  elements.modeDisplay.textContent = getModeConfig().label;
+  updatePlayerPanel();
+}
+
 function captureLevelSnapshot() {
   state.levelStartSnapshot = {
     score: state.score,
     correctAnswers: state.correctAnswers,
     totalAttempts: state.totalAttempts,
     playerScores: [...state.playerScores],
-    starsEarned: state.starsEarned
+    starsEarned: state.starsEarned,
+    levelStarsMap: [...state.levelStarsMap]
   };
 }
 
 function restoreLevelSnapshot() {
-  if (!state.levelStartSnapshot) {
-    return;
-  }
+  if (!state.levelStartSnapshot) return;
   state.score = state.levelStartSnapshot.score;
   state.correctAnswers = state.levelStartSnapshot.correctAnswers;
   state.totalAttempts = state.levelStartSnapshot.totalAttempts;
   state.playerScores = [...state.levelStartSnapshot.playerScores];
   state.starsEarned = state.levelStartSnapshot.starsEarned;
+  state.levelStarsMap = [...state.levelStartSnapshot.levelStarsMap];
 }
 
 function requiredScoreForLevel(level) {
@@ -416,15 +512,9 @@ function requiredScoreForLevel(level) {
 }
 
 function calculateStars(levelScore, required) {
-  if (levelScore < required) {
-    return 0;
-  }
-  if (levelScore >= required * 1.45) {
-    return 3;
-  }
-  if (levelScore >= required * 1.18) {
-    return 2;
-  }
+  if (levelScore < required) return 0;
+  if (levelScore >= required * 1.45) return 3;
+  if (levelScore >= required * 1.18) return 2;
   return 1;
 }
 
@@ -434,15 +524,65 @@ function renderStars(container, count) {
   });
 }
 
+function updateSelectedLevelCard() {
+  const levelData = MAP_LEVELS[state.selectedLevel - 1];
+  elements.selectedLevelLabel.textContent = levelData.title;
+  elements.selectedLevelDescription.textContent = levelData.description;
+  elements.enterLevelButton.textContent = levelData.boss ? "Entrer dans le boss" : "Entrer dans le niveau";
+  elements.enterLevelButton.disabled = state.selectedLevel > state.highestUnlockedLevel;
+}
+
+function positionMascotOnMap(instant = false) {
+  const levelData = MAP_LEVELS[state.selectedLevel - 1];
+  const targetX = `calc(${levelData.x}% - 33px)`;
+  const targetY = `calc(${levelData.y}% - 33px)`;
+  if (!window.gsap || REDUCED_MOTION || instant) {
+    elements.mapMascot.style.left = targetX;
+    elements.mapMascot.style.top = targetY;
+    return;
+  }
+  gsap.to(elements.mapMascot, { left: targetX, top: targetY, duration: 0.5, ease: "power2.out" });
+}
+
+function selectMapLevel(level, instant = false) {
+  state.selectedLevel = level;
+  renderMap();
+  positionMascotOnMap(instant);
+}
+
+function renderMap() {
+  elements.mapNodes.innerHTML = "";
+  MAP_LEVELS.forEach((node, index) => {
+    const level = index + 1;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "map-node";
+    if (level > state.highestUnlockedLevel) button.classList.add("locked");
+    if (level === state.selectedLevel) button.classList.add("selected");
+    if (node.boss) button.classList.add("boss-node");
+    button.style.left = `calc(${node.x}% - 37px)`;
+    button.style.top = `calc(${node.y}% - 37px)`;
+    button.innerHTML = `${node.boss ? "👑" : level}<span class="node-stars">${"★".repeat(state.levelStarsMap[index] || 0)}</span>`;
+    button.addEventListener("click", () => {
+      if (level <= state.highestUnlockedLevel) {
+        selectMapLevel(level);
+      }
+    });
+    elements.mapNodes.appendChild(button);
+  });
+  elements.mapProgressDisplay.textContent = `${state.highestUnlockedLevel}/10`;
+  elements.mapStarsDisplay.textContent = state.levelStarsMap.reduce((sum, value) => sum + value, 0);
+  updateSelectedLevelCard();
+}
+
 function generateQuestion() {
   const currentLevelIndex = state.level - 1;
   const shouldReviewPreviousLevel = state.level > 1 && Math.random() < 0.35;
-  const selectedLevelIndex = shouldReviewPreviousLevel
-    ? randomBetween(0, currentLevelIndex - 1)
-    : currentLevelIndex;
+  const selectedLevelIndex = shouldReviewPreviousLevel ? randomBetween(0, currentLevelIndex - 1) : currentLevelIndex;
   const config = getModeConfig().ranges[selectedLevelIndex];
   const first = randomBetween(config.a[0], config.a[1]);
   const second = randomBetween(config.b[0], config.b[1]);
+  state.currentQuestionSourceLevel = selectedLevelIndex + 1;
   return { first, second, answer: first * second };
 }
 
@@ -456,19 +596,48 @@ function generateAnswerOptions(answer) {
   return shuffle([...options]);
 }
 
-function animateQuestionIn() {
-  if (!window.gsap || REDUCED_MOTION) {
-    return;
+function renderAnswerOptions() {
+  elements.answerGrid.innerHTML = "";
+  state.answerOptions.forEach((option, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "answer-option";
+    button.textContent = option;
+    button.setAttribute("aria-label", `Reponse ${index + 1}: ${option}`);
+    button.dataset.value = String(option);
+    button.addEventListener("click", () => selectAnswer(option, button));
+    elements.answerGrid.appendChild(button);
+  });
+}
+
+function setFeedback(message, type = "") {
+  elements.feedbackText.textContent = message;
+  elements.feedbackText.classList.remove("feedback-success", "feedback-error");
+  if (type === "success") elements.feedbackText.classList.add("feedback-success");
+  if (type === "error") elements.feedbackText.classList.add("feedback-error");
+}
+
+function updateQuestionUI() {
+  const { first, second } = state.currentQuestion;
+  elements.questionText.textContent = `${first} x ${second}`;
+  elements.questionBadge.textContent = state.currentQuestionSourceLevel < state.level ? `Revision du niveau ${state.currentQuestionSourceLevel}` : state.level === TOTAL_LEVELS ? "Boss du chateau" : `Niveau ${state.level}`;
+  renderAnswerOptions();
+  setFeedback("Choisis la bonne reponse avant la fin du chrono.");
+  elements.bonusBanner.textContent = "";
+  state.acceptingAnswer = true;
+  setMascotSpeech(state.sessionMode === "duo" ? `A toi Joueur ${state.currentPlayer + 1} !` : `En route ${state.profileName}, le niveau ${state.level} t'attend.`);
+  updateScoreboard();
+  if (window.gsap && !REDUCED_MOTION) {
+    gsap.fromTo(elements.questionCard, { opacity: 0, scale: 0.92, y: 26 }, { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: "back.out(1.6)" });
   }
-  gsap.fromTo(elements.questionCard, { opacity: 0, scale: 0.88, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" });
-  gsap.fromTo(".answer-option", { y: 18, opacity: 0, scale: 0.95 }, { y: 0, opacity: 1, scale: 1, duration: 0.28, stagger: 0.05, ease: "power2.out" });
+  if (state.voiceEnabled) {
+    window.setTimeout(speakQuestion, 180);
+  }
 }
 
 function stopTimer() {
-  if (state.timerRaf) {
-    cancelAnimationFrame(state.timerRaf);
-    state.timerRaf = 0;
-  }
+  if (state.timerRaf) cancelAnimationFrame(state.timerRaf);
+  state.timerRaf = 0;
 }
 
 function renderTimer() {
@@ -501,22 +670,16 @@ function startTimer() {
 
 function ensureAudioContext() {
   const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextCtor) {
-    return null;
-  }
+  if (!AudioContextCtor) return null;
   const context = ensureAudioContext.ctx || new AudioContextCtor();
   ensureAudioContext.ctx = context;
-  if (context.state === "suspended") {
-    context.resume().catch(() => {});
-  }
+  if (context.state === "suspended") context.resume().catch(() => {});
   return context;
 }
 
 function playSound(type) {
   const context = ensureAudioContext();
-  if (!context) {
-    return;
-  }
+  if (!context) return;
   const settings = {
     start: type === "success" ? 640 : type === "bonus" ? 720 : type === "pass" ? 520 : 180,
     end: type === "success" ? 880 : type === "bonus" ? 1120 : type === "pass" ? 920 : 120,
@@ -538,23 +701,17 @@ function playSound(type) {
 }
 
 function speakQuestion() {
-  if (!state.voiceEnabled || !("speechSynthesis" in window) || !state.currentQuestion) {
-    return;
-  }
+  if (!state.voiceEnabled || !("speechSynthesis" in window) || !state.currentQuestion) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(`${state.currentQuestion.first} fois ${state.currentQuestion.second}`);
   utterance.lang = "fr-FR";
   utterance.rate = state.mode === "kids" ? 0.92 : 1;
-  if (state.preferredVoice) {
-    utterance.voice = state.preferredVoice;
-  }
+  if (state.preferredVoice) utterance.voice = state.preferredVoice;
   window.speechSynthesis.speak(utterance);
 }
 
 function createParticles(kind) {
-  if (!window.gsap || REDUCED_MOTION) {
-    return;
-  }
+  if (!window.gsap || REDUCED_MOTION) return;
   const colors = kind === "success" ? ["#21c06b", "#ffd54a", "#1f6fff", "#ff5f6d"] : ["#ff5f6d", "#ff9966", "#ffd54a"];
   for (let index = 0; index < MOBILE_PARTICLE_COUNT; index += 1) {
     const particle = document.createElement("span");
@@ -580,20 +737,9 @@ function createParticles(kind) {
   }
 }
 
-function animateCorrectAnswer() {
-  if (window.gsap && !REDUCED_MOTION) {
-    gsap.fromTo(elements.feedbackText, { scale: 0.85 }, { scale: 1.08, duration: 0.18, yoyo: true, repeat: 1, ease: "power1.inOut" });
-  }
-  createParticles("success");
-  playSound("success");
-}
-
 function animateWrongAnswer() {
   document.body.classList.add("screen-shake");
   window.setTimeout(() => document.body.classList.remove("screen-shake"), 420);
-  if (window.gsap && !REDUCED_MOTION) {
-    gsap.fromTo(elements.feedbackText, { x: -8 }, { x: 8, duration: 0.08, repeat: 5, yoyo: true, ease: "power1.inOut" });
-  }
   playSound("wrong");
 }
 
@@ -607,15 +753,14 @@ function revealCorrectOption(selectedButton = null) {
   elements.answerGrid.querySelectorAll(".answer-option").forEach((button) => {
     const isCorrect = Number(button.dataset.value) === state.currentQuestion.answer;
     button.classList.toggle("answer-option-correct", isCorrect);
-    if (selectedButton && !isCorrect && button === selectedButton) {
+    if (selectedButton && button === selectedButton && !isCorrect) {
       button.classList.add("answer-option-wrong");
     }
   });
 }
 
 function showBonus() {
-  const bonusMessage = `Bonus ! +${BONUS_POINTS} points et +${BONUS_TIME} s pour la prochaine question`;
-  elements.bonusBanner.textContent = bonusMessage;
+  elements.bonusBanner.textContent = `Bonus ! +${BONUS_POINTS} points et +${BONUS_TIME} s pour la prochaine question`;
   state.score += BONUS_POINTS;
   state.levelScore += BONUS_POINTS;
   state.playerScores[state.currentPlayer] += BONUS_POINTS;
@@ -628,10 +773,8 @@ function showBonus() {
 
 function scheduleNextQuestion() {
   window.setTimeout(() => {
-    if (!state.gameOver) {
-      advanceGameFlow();
-    }
-  }, REDUCED_MOTION ? 180 : 780);
+    if (!state.gameOver) advanceGameFlow();
+  }, REDUCED_MOTION ? 180 : 760);
 }
 
 function handleCorrectAnswer(selectedButton) {
@@ -655,8 +798,9 @@ function handleCorrectAnswer(selectedButton) {
   state.playerScores[state.currentPlayer] += gain;
 
   setFeedback(`Parfait ! +${gain} points`, "success");
-  setMascotSpeech(`Bravo ${state.sessionMode === "duo" ? `Joueur ${state.currentPlayer + 1}` : "champion"} !`);
-  animateCorrectAnswer();
+  setMascotSpeech(state.level === TOTAL_LEVELS ? "Le boss tremble ! Continue." : "Bien joue, le chemin s'ouvre.");
+  createParticles("success");
+  playSound("success");
 
   if (state.streak % BONUS_STREAK === 0) {
     showBonus();
@@ -687,9 +831,7 @@ function handleWrongAnswer(reason) {
 }
 
 function selectAnswer(value, button) {
-  if (!state.acceptingAnswer || state.gameOver) {
-    return;
-  }
+  if (!state.acceptingAnswer || state.gameOver) return;
   if (value === state.currentQuestion.answer) {
     handleCorrectAnswer(button);
   } else {
@@ -699,45 +841,40 @@ function selectAnswer(value, button) {
   }
 }
 
-function renderAnswerOptions() {
-  elements.answerGrid.innerHTML = "";
-  state.answerOptions.forEach((option, index) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "answer-option";
-    button.textContent = option;
-    button.setAttribute("aria-label", `Reponse ${index + 1}: ${option}`);
-    button.dataset.value = String(option);
-    button.addEventListener("click", () => selectAnswer(option, button));
-    elements.answerGrid.appendChild(button);
-  });
-}
-
-function updateQuestionUI() {
-  const { first, second } = state.currentQuestion;
-  elements.questionText.textContent = `${first} x ${second}`;
-  renderAnswerOptions();
-  setFeedback("Choisis la bonne reponse avant la fin du chrono.");
-  elements.bonusBanner.textContent = "";
-  state.acceptingAnswer = true;
-  setMascotSpeech(state.sessionMode === "duo" ? `A toi Joueur ${state.currentPlayer + 1} !` : "Je te lis la question si tu veux.");
-  updateScoreboard();
-  animateQuestionIn();
-  if (state.voiceEnabled) {
-    window.setTimeout(speakQuestion, 180);
-  }
-}
-
 function beginQuestion() {
-  if (state.sessionMode === "duo") {
-    state.currentPlayer = state.questionIndex % 2;
-  } else {
-    state.currentPlayer = 0;
-  }
+  state.currentPlayer = state.sessionMode === "duo" ? state.questionIndex % 2 : 0;
   state.currentQuestion = generateQuestion();
   state.answerOptions = generateAnswerOptions(state.currentQuestion.answer);
   updateQuestionUI();
   startTimer();
+}
+
+function beginLevelFromMap() {
+  state.level = state.selectedLevel;
+  state.questionIndex = 0;
+  state.levelScore = 0;
+  state.levelCorrectAnswers = 0;
+  state.levelAttempts = 0;
+  state.streak = 0;
+  state.levelStars = 0;
+  state.timeLimit = getModeConfig().baseTime;
+  state.lastUnlockedBadges = [];
+  captureLevelSnapshot();
+  showScreen(elements.gameScreen);
+  beginQuestion();
+}
+
+function updateProgressAfterWin() {
+  const profile = getProfileRecord(state.activeProfileId, state.profileName);
+  profile.stats.levelsCleared += 1;
+  profile.stats.bestLevel = Math.max(profile.stats.bestLevel, state.level);
+  state.highestUnlockedLevel = Math.min(TOTAL_LEVELS, Math.max(state.highestUnlockedLevel, state.level + 1));
+  state.levelStarsMap[state.level - 1] = Math.max(state.levelStarsMap[state.level - 1], state.levelStars);
+  state.selectedLevel = state.level === TOTAL_LEVELS ? TOTAL_LEVELS : Math.min(state.highestUnlockedLevel, state.level + 1);
+  profile.highestUnlockedLevel = state.highestUnlockedLevel;
+  profile.levelStars = [...state.levelStarsMap];
+  profile.stats.totalStars = state.levelStarsMap.reduce((sum, value) => sum + value, 0);
+  state.profiles[state.activeProfileId] = profile;
 }
 
 function showCheckpoint() {
@@ -745,7 +882,6 @@ function showCheckpoint() {
   const levelAccuracy = getAccuracy(state.levelCorrectAnswers, state.levelAttempts);
   state.levelPassed = state.levelScore >= required;
   state.levelStars = calculateStars(state.levelScore, required);
-  state.starsEarned += state.levelStars;
 
   elements.checkpointLevelScore.textContent = state.levelScore;
   elements.checkpointRequiredScore.textContent = required;
@@ -754,31 +890,28 @@ function showCheckpoint() {
   renderStars(elements.checkpointStars, state.levelStars);
 
   if (state.levelPassed) {
+    updateProgressAfterWin();
+    state.starsEarned = state.levelStarsMap.reduce((sum, value) => sum + value, 0);
     unlockBadge("first_win");
-    elements.checkpointEyebrow.textContent = "Niveau valide";
-    elements.checkpointTitle.textContent = state.level === TOTAL_LEVELS ? "Bravo, tout est complete !" : "Bien joue !";
+    if (state.levelStars === 3) unlockBadge("star_hunter");
+    if (levelAccuracy === 100) unlockBadge("perfect_level");
+    if (state.mode === "expert") unlockBadge("expert_brain");
+    if (state.level === TOTAL_LEVELS) unlockBadge("castle_hero");
+    elements.checkpointEyebrow.textContent = state.level === TOTAL_LEVELS ? "Boss vaincu" : "Niveau valide";
+    elements.checkpointTitle.textContent = state.level === TOTAL_LEVELS ? "Le chateau est libre !" : "Retour a la carte";
     elements.checkpointMessage.textContent = state.level === TOTAL_LEVELS
-      ? "Tu as reussi le dernier niveau. Tu peux terminer la partie en beaute ou refaire le niveau pour encore plus de points."
-      : "Ton score est suffisant pour passer au niveau suivant. Tu peux continuer ou rejouer ce niveau pour t'ameliorer.";
-    elements.checkpointPrimaryButton.textContent = state.level === TOTAL_LEVELS ? "Voir mon resultat final" : "Passer au niveau suivant";
+      ? "Tu as battu le boss du chateau. Le monde entier t'applaudit."
+      : "Ton score est suffisant. La mascotte peut avancer sur la prochaine case.";
+    elements.checkpointPrimaryButton.textContent = state.level === TOTAL_LEVELS ? "Voir la fin" : "Retour a la carte";
+    setMascotSpeech(state.level === TOTAL_LEVELS ? "Le boss est battu !" : "Une nouvelle case vient de s'ouvrir.");
     playSound("pass");
     createParticles("success");
-    setMascotSpeech(`Excellent ! ${state.levelStars} etoile${state.levelStars > 1 ? "s" : ""} pour ce niveau.`);
-    if (state.levelStars === 3) {
-      unlockBadge("star_hunter");
-    }
-    if (levelAccuracy === 100) {
-      unlockBadge("perfect_level");
-    }
-    if (state.mode === "expert") {
-      unlockBadge("expert_brain");
-    }
   } else {
     elements.checkpointEyebrow.textContent = "Niveau a retenter";
     elements.checkpointTitle.textContent = "Tu peux faire mieux !";
-    elements.checkpointMessage.textContent = "Le score du niveau n'est pas suffisant. Rejoue ce niveau pour tenter de debloquer la suite.";
-    elements.checkpointPrimaryButton.textContent = "Retenter le niveau";
-    setMascotSpeech("On retente ce niveau, tu y es presque.");
+    elements.checkpointMessage.textContent = "Le score du niveau n'est pas suffisant. Tu peux revenir sur la carte ou retenter ce niveau.";
+    elements.checkpointPrimaryButton.textContent = "Retour a la carte";
+    setMascotSpeech("On peut retenter ce niveau quand tu veux.");
   }
 
   if (state.sessionMode === "duo") {
@@ -789,50 +922,15 @@ function showCheckpoint() {
       elements.checkpointWinner.textContent = `Avantage temporaire: Joueur ${leader}.`;
     }
   } else {
-    elements.checkpointWinner.textContent = `Tu cumules ${state.starsEarned} etoiles au total.`;
+    elements.checkpointWinner.textContent = `${state.profileName} a maintenant acces jusqu'au niveau ${state.highestUnlockedLevel}.`;
   }
 
   renderBadgeShelf(elements.badgeShelfCheckpoint, state.lastUnlockedBadges, state.lastUnlockedBadges);
+  persistProfiles();
+  updateBestScoreDisplays();
   updateProfileUI();
-
+  renderMap();
   showScreen(elements.checkpointScreen);
-  if (window.gsap && !REDUCED_MOTION) {
-    gsap.fromTo(".checkpoint-card", { opacity: 0, y: 40, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.4)" });
-  }
-}
-
-function resetLevelProgress() {
-  state.questionIndex = 0;
-  state.levelScore = 0;
-  state.levelCorrectAnswers = 0;
-  state.levelAttempts = 0;
-  state.streak = 0;
-  state.levelStars = 0;
-  state.timeLimit = getModeConfig().baseTime;
-}
-
-function advanceToNextLevel() {
-  if (state.level >= TOTAL_LEVELS) {
-    endGame({
-      eyebrow: "Victoire totale",
-      title: "Tu as termine les 10 niveaux !",
-      message: "Super travail. Tu peux relancer une partie en mode expert pour viser un score encore plus grand."
-    });
-    return;
-  }
-  state.level += 1;
-  resetLevelProgress();
-  captureLevelSnapshot();
-  showScreen(elements.gameScreen);
-  beginQuestion();
-}
-
-function retryLevel() {
-  restoreLevelSnapshot();
-  resetLevelProgress();
-  showScreen(elements.gameScreen);
-  updateScoreboard();
-  beginQuestion();
 }
 
 function advanceGameFlow() {
@@ -848,7 +946,14 @@ function endGame({ title, eyebrow, message }) {
   state.gameOver = true;
   stopTimer();
   saveBestScore(state.score);
-  updateBestScoreDisplays();
+  const profile = getProfileRecord(state.activeProfileId, state.profileName);
+  profile.stats.gamesPlayed += 1;
+  profile.stats.correctAnswers += state.correctAnswers;
+  profile.stats.totalAnswers += state.totalAttempts;
+  profile.stats.bestLevel = Math.max(profile.stats.bestLevel, state.level);
+  profile.levelStars = [...state.levelStarsMap];
+  profile.highestUnlockedLevel = state.highestUnlockedLevel;
+  state.profiles[state.activeProfileId] = profile;
 
   const accuracy = getAccuracy(state.correctAnswers, state.totalAttempts);
   elements.finalScore.textContent = state.score;
@@ -857,7 +962,7 @@ function endGame({ title, eyebrow, message }) {
   elements.endEyebrow.textContent = eyebrow;
   elements.endTitle.textContent = title;
   elements.endMessage.textContent = message;
-  renderStars(elements.finalStars, Math.min(3, Math.ceil(state.starsEarned / 4)));
+  renderStars(elements.finalStars, Math.min(3, Math.ceil(state.levelStarsMap.reduce((sum, value) => sum + value, 0) / 8)));
 
   if (state.sessionMode === "duo") {
     if (state.playerScores[0] === state.playerScores[1]) {
@@ -868,38 +973,55 @@ function endGame({ title, eyebrow, message }) {
       unlockBadge("duo_winner");
     }
   } else {
-    elements.winnerMessage.textContent = `${state.profileName}, tu termines avec ${state.starsEarned} etoiles cumulees.`;
+    elements.winnerMessage.textContent = `${state.profileName}, tu termines avec ${state.levelStarsMap.reduce((sum, value) => sum + value, 0)} etoiles cumulees.`;
   }
 
-  if (state.score >= 1000) {
-    unlockBadge("hundred_points");
-  }
-
+  if (state.score >= 1000) unlockBadge("hundred_points");
+  persistProfiles();
   renderBadgeShelf(elements.badgeShelfEnd, state.unlockedBadges, state.lastUnlockedBadges);
   updateProfileUI();
+  renderMap();
   showScreen(elements.endScreen);
-  if (window.gsap && !REDUCED_MOTION) {
-    gsap.fromTo(".end-card", { opacity: 0, y: 40, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: "back.out(1.4)" });
-    gsap.fromTo(elements.finalScore, { textContent: 0 }, { textContent: state.score, duration: 1.1, snap: { textContent: 1 }, ease: "power2.out" });
-  }
 }
 
-function startGame() {
+function openMap() {
+  state.selectedLevel = Math.min(state.selectedLevel, state.highestUnlockedLevel);
+  updateBestScoreDisplays();
+  updateProfileUI();
+  renderMap();
+  positionMascotOnMap(true);
+  showScreen(elements.mapScreen);
+}
+
+function returnToMapFromCheckpoint() {
+  if (state.levelPassed && state.level === TOTAL_LEVELS) {
+    endGame({
+      eyebrow: "Victoire finale",
+      title: "Le boss du chateau est vaincu !",
+      message: "Tu as termine la grande carte du monde des multiplications."
+    });
+    return;
+  }
+  openMap();
+}
+
+function restartAdventure() {
   state.level = 1;
+  state.selectedLevel = 1;
   state.score = 0;
   state.correctAnswers = 0;
   state.totalAttempts = 0;
   state.playerScores = [0, 0];
-  state.starsEarned = 0;
-  state.currentPlayer = 0;
   state.gameOver = false;
+  state.starsEarned = state.levelStarsMap.reduce((sum, value) => sum + value, 0);
   state.lastUnlockedBadges = [];
-  resetLevelProgress();
-  captureLevelSnapshot();
-  updateBestScoreDisplays();
-  updateProfileUI();
-  showScreen(elements.gameScreen);
-  beginQuestion();
+  openMap();
+}
+
+function animateMapAmbient() {
+  if (!window.gsap || REDUCED_MOTION) return;
+  gsap.to(".boss-orb", { scale: 1.08, y: -8, duration: 1.6, repeat: -1, yoyo: true, ease: "sine.inOut" });
+  gsap.to(".castle-silhouette", { y: -4, duration: 3.6, repeat: -1, yoyo: true, ease: "sine.inOut" });
 }
 
 function setupInstallPrompt() {
@@ -909,9 +1031,7 @@ function setupInstallPrompt() {
     elements.installButton.classList.remove("hidden");
   });
   elements.installButton.addEventListener("click", async () => {
-    if (!state.deferredInstallPrompt) {
-      return;
-    }
+    if (!state.deferredInstallPrompt) return;
     state.deferredInstallPrompt.prompt();
     await state.deferredInstallPrompt.userChoice;
     state.deferredInstallPrompt = null;
@@ -942,8 +1062,11 @@ function runLoadingIntro() {
 }
 
 function bindEvents() {
-  elements.startButton.addEventListener("click", startGame);
-  elements.restartButton.addEventListener("click", startGame);
+  elements.openMapButton.addEventListener("click", openMap);
+  elements.backToHubButton.addEventListener("click", () => showScreen(elements.startScreen));
+  elements.enterLevelButton.addEventListener("click", beginLevelFromMap);
+  elements.returnToMapButton.addEventListener("click", openMap);
+  elements.restartButton.addEventListener("click", restartAdventure);
   elements.kidsModeButton.addEventListener("click", () => setMode("kids"));
   elements.expertModeButton.addEventListener("click", () => setMode("expert"));
   elements.soloModeButton.addEventListener("click", () => setSessionMode("solo"));
@@ -957,22 +1080,8 @@ function bindEvents() {
       saveProfileFromInput();
     }
   });
-  elements.checkpointPrimaryButton.addEventListener("click", () => {
-    if (!state.levelPassed) {
-      retryLevel();
-      return;
-    }
-    if (state.level >= TOTAL_LEVELS) {
-      endGame({
-        eyebrow: "Champion confirme",
-        title: "Partie terminee !",
-        message: "Tu as boucle la campagne complete. Relance une partie pour battre ton record."
-      });
-      return;
-    }
-    advanceToNextLevel();
-  });
-  elements.checkpointRetryButton.addEventListener("click", retryLevel);
+  elements.checkpointPrimaryButton.addEventListener("click", returnToMapFromCheckpoint);
+  elements.checkpointRetryButton.addEventListener("click", beginLevelFromMap);
 }
 
 function init() {
@@ -986,10 +1095,12 @@ function init() {
   setVoiceEnabled(true);
   updateBestScoreDisplays();
   updateProfileUI();
+  renderMap();
+  positionMascotOnMap(true);
   updateScoreboard();
   renderTimer();
   bindEvents();
-  animateFloatingDecor();
+  animateMapAmbient();
   setupInstallPrompt();
   registerServiceWorker();
   runLoadingIntro();

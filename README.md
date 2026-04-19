@@ -27,6 +27,14 @@ Jeu web mobile-first de multiplication avec niveaux, chrono, bonus, score, meill
 - affichage persistant des badges sur l'accueil et l'ecran final
 - meilleure selection des voix francaises disponibles dans le navigateur
 
+## V5 incluse
+
+- carte du monde immersive avec cases de niveau et mascotte qui se deplace
+- chateau final et boss sur la derniere case
+- entree dans les niveaux depuis la carte au lieu d'une progression ecran par ecran identique
+- tableau de bord parent avec statistiques par enfant
+- vraie collection visuelle de recompenses
+
 ## Fichiers
 
 - `index.html` : structure des écrans et chargement de GSAP via CDN
