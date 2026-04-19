@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
+const { Profile, Score, testConnection, syncDatabase } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,11 +44,11 @@ app.use(express.static(path.join(__dirname, '.'), {
   maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0
 }));
 
-// 🗄️ Stockage en mémoire (remplacer par MongoDB en production)
-const database = {
-  profiles: {},
-  scores: []
-};
+// 🗄️ Initialisation de la base de données
+(async () => {
+  await testConnection();
+  await syncDatabase();
+})();
 
 // 🔐 Clé secrète simple (à remplacer par JWT en production)
 const ADMIN_KEY = process.env.ADMIN_KEY || 'dev-key-change-in-production';
@@ -64,110 +65,167 @@ function validateAuth(req, res, next) {
 // 🎮 API Routes
 
 // GET /api/profiles - Récupérer tous les profils
-app.get('/api/profiles', (req, res) => {
-  res.json(database.profiles);
+app.get('/api/profiles', async (req, res) => {
+  try {
+    const profiles = await Profile.findAll({
+      include: [{
+        model: Score,
+        as: 'scores',
+        limit: 10,
+        order: [['createdAt', 'DESC']]
+      }]
+    });
+    res.json(profiles);
+  } catch (error) {
+    console.error('Erreur récupération profils:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // POST /api/profiles - Créer/Mettre à jour un profil
-app.post('/api/profiles', express.json(), (req, res) => {
-  const { id, name, badges, bestScore, highestUnlockedLevel, levelStars, stats } = req.body;
-  
-  if (!id || !name) {
-    return res.status(400).json({ error: 'ID et nom requis' });
+app.post('/api/profiles', express.json(), async (req, res) => {
+  try {
+    const { id, name, badges, bestScore, highestUnlockedLevel, levelStars, stats } = req.body;
+
+    if (!id || !name) {
+      return res.status(400).json({ error: 'ID et nom requis' });
+    }
+
+    const [profile, created] = await Profile.upsert({
+      id,
+      name,
+      badges: badges || [],
+      bestScore: bestScore || 0,
+      highestUnlockedLevel: highestUnlockedLevel || 1,
+      levelStars: levelStars || Array(10).fill(0),
+      stats: stats || {
+        gamesPlayed: 0,
+        levelsCleared: 0,
+        totalStars: 0,
+        bestLevel: 1,
+        correctAnswers: 0,
+        totalAnswers: 0
+      }
+    });
+
+    res.json(profile);
+  } catch (error) {
+    console.error('Erreur sauvegarde profil:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
-
-  const profile = {
-    id,
-    name,
-    badges: badges || [],
-    bestScore: bestScore || 0,
-    highestUnlockedLevel: highestUnlockedLevel || 1,
-    levelStars: levelStars || Array(10).fill(0),
-    stats: stats || {
-      gamesPlayed: 0,
-      levelsCleared: 0,
-      totalStars: 0,
-      bestLevel: 1,
-      correctAnswers: 0,
-      totalAnswers: 0
-    },
-    lastUpdated: new Date().toISOString()
-  };
-
-  database.profiles[id] = profile;
-  res.json(profile);
 });
 
 // POST /api/scores - Sauvegarder un score
-app.post('/api/scores', express.json(), (req, res) => {
-  const { profileId, level, levelScore, totalScore, stars, mode, accuracy } = req.body;
-  
-  if (!profileId || !level) {
-    return res.status(400).json({ error: 'ProfileID et niveau requis' });
+app.post('/api/scores', express.json(), async (req, res) => {
+  try {
+    const { profileId, level, levelScore, totalScore, stars, mode, accuracy } = req.body;
+
+    if (!profileId || !level) {
+      return res.status(400).json({ error: 'ProfileID et niveau requis' });
+    }
+
+    const score = await Score.create({
+      id: `${profileId}-${level}-${Date.now()}`,
+      profileId,
+      level,
+      levelScore,
+      totalScore,
+      stars,
+      mode,
+      accuracy
+    });
+
+    res.json(score);
+  } catch (error) {
+    console.error('Erreur sauvegarde score:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
-
-  const score = {
-    id: `${profileId}-${level}-${Date.now()}`,
-    profileId,
-    level,
-    levelScore,
-    totalScore,
-    stars,
-    mode,
-    accuracy,
-    timestamp: new Date().toISOString()
-  };
-
-  database.scores.push(score);
-  res.json(score);
 });
 
 // GET /api/scores/:profileId - Récupérer les scores d'un profil
-app.get('/api/scores/:profileId', (req, res) => {
-  const { profileId } = req.params;
-  const scores = database.scores.filter(s => s.profileId === profileId);
-  res.json(scores);
+app.get('/api/scores/:profileId', async (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const scores = await Score.findAll({
+      where: { profileId },
+      order: [['createdAt', 'DESC']]
+    });
+    res.json(scores);
+  } catch (error) {
+    console.error('Erreur récupération scores:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // GET /api/leaderboard - Classement global
-app.get('/api/leaderboard', (req, res) => {
-  const leaderboard = Object.values(database.profiles)
-    .sort((a, b) => (b.bestScore || 0) - (a.bestScore || 0))
-    .slice(0, 50)
-    .map((p, index) => ({
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    const profiles = await Profile.findAll({
+      attributes: ['name', 'bestScore', 'highestUnlockedLevel', 'levelStars'],
+      order: [['bestScore', 'DESC']],
+      limit: 50
+    });
+
+    const leaderboard = profiles.map((p, index) => ({
       rank: index + 1,
       name: p.name,
       score: p.bestScore,
       level: p.highestUnlockedLevel,
       stars: (p.levelStars || []).reduce((a, b) => a + b, 0)
     }));
-  
-  res.json(leaderboard);
+
+    res.json(leaderboard);
+  } catch (error) {
+    console.error('Erreur récupération leaderboard:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // 🛠️ Admin routes (sécurisées)
 
 // GET /api/admin/stats - Statistiques globales
-app.get('/api/admin/stats', validateAuth, (req, res) => {
-  const totalProfiles = Object.keys(database.profiles).length;
-  const totalScores = database.scores.length;
-  const avgScore = database.scores.length > 0
-    ? Math.round(database.scores.reduce((sum, s) => sum + (s.totalScore || 0), 0) / database.scores.length)
-    : 0;
+app.get('/api/admin/stats', validateAuth, async (req, res) => {
+  try {
+    const [totalProfilesResult, totalScoresResult, avgScoreResult] = await Promise.all([
+      Profile.count(),
+      Score.count(),
+      Score.findAll({
+        attributes: [[Score.sequelize.fn('AVG', Score.sequelize.col('totalScore')), 'avgScore']]
+      })
+    ]);
 
-  res.json({
-    totalProfiles,
-    totalScores,
-    avgScore,
-    timestamp: new Date().toISOString()
-  });
+    const avgScore = avgScoreResult[0]?.dataValues?.avgScore
+      ? Math.round(parseFloat(avgScoreResult[0].dataValues.avgScore))
+      : 0;
+
+    res.json({
+      totalProfiles: totalProfilesResult,
+      totalScores: totalScoresResult,
+      avgScore,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Erreur récupération stats:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // DELETE /api/admin/profiles/:id - Supprimer un profil
-app.delete('/api/admin/profiles/:id', validateAuth, (req, res) => {
-  const { id } = req.params;
-  delete database.profiles[id];
-  res.json({ success: true, message: `Profil ${id} supprimé` });
+app.delete('/api/admin/profiles/:id', validateAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Profile.destroy({ where: { id } });
+    if (deleted) {
+      // Supprimer aussi les scores associés
+      await Score.destroy({ where: { profileId: id } });
+      res.json({ success: true, message: `Profil ${id} supprimé` });
+    } else {
+      res.status(404).json({ error: 'Profil non trouvé' });
+    }
+  } catch (error) {
+    console.error('Erreur suppression profil:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // 📊 SEO Routes
