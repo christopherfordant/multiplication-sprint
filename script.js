@@ -1021,6 +1021,51 @@ function restartAdventure() {
   openMap();
 }
 
+function jumpToParentStats() {
+  showScreen(elements.startScreen);
+  window.scrollTo({ top: document.body.scrollHeight, behavior: REDUCED_MOTION ? "auto" : "smooth" });
+}
+
+function runButtonAction(actionId) {
+  const actions = {
+    mapNavHubButton: () => showScreen(elements.startScreen),
+    mapNavStatsButton: jumpToParentStats,
+    mapNavRewardsButton: jumpToParentStats,
+    openMapButton: openMap,
+    backToHubButton: () => showScreen(elements.startScreen),
+    enterLevelButton: beginLevelFromMap,
+    returnToMapButton: openMap,
+    restartButton: restartAdventure,
+    kidsModeButton: () => setMode("kids"),
+    expertModeButton: () => setMode("expert"),
+    soloModeButton: () => setSessionMode("solo"),
+    duoModeButton: () => setSessionMode("duo"),
+    voiceToggleButton: () => setVoiceEnabled(!state.voiceEnabled),
+    speakButton: speakQuestion,
+    saveProfileButton: saveProfileFromInput,
+    checkpointPrimaryButton: returnToMapFromCheckpoint,
+    checkpointRetryButton: beginLevelFromMap
+  };
+  const action = actions[actionId];
+  if (action) {
+    action();
+  }
+}
+
+function bindClick(element, actionId) {
+  if (!element) {
+    return;
+  }
+  element.addEventListener("click", (event) => {
+    event.preventDefault();
+    element.dataset.codexHandled = "true";
+    window.setTimeout(() => {
+      delete element.dataset.codexHandled;
+    }, 0);
+    runButtonAction(actionId);
+  });
+}
+
 function animateMapAmbient() {
   if (!window.gsap || REDUCED_MOTION) return;
   gsap.to(".boss-orb", { scale: 1.08, y: -8, duration: 1.6, repeat: -1, yoyo: true, ease: "sine.inOut" });
@@ -1072,35 +1117,65 @@ function runLoadingIntro() {
 }
 
 function bindEvents() {
-  elements.mapNavHubButton.addEventListener("click", () => showScreen(elements.startScreen));
-  elements.mapNavStatsButton.addEventListener("click", () => {
-    showScreen(elements.startScreen);
-    window.scrollTo({ top: document.body.scrollHeight, behavior: REDUCED_MOTION ? "auto" : "smooth" });
-  });
-  elements.mapNavRewardsButton.addEventListener("click", () => {
-    showScreen(elements.startScreen);
-    window.scrollTo({ top: document.body.scrollHeight, behavior: REDUCED_MOTION ? "auto" : "smooth" });
-  });
-  elements.openMapButton.addEventListener("click", openMap);
-  elements.backToHubButton.addEventListener("click", () => showScreen(elements.startScreen));
-  elements.enterLevelButton.addEventListener("click", beginLevelFromMap);
-  elements.returnToMapButton.addEventListener("click", openMap);
-  elements.restartButton.addEventListener("click", restartAdventure);
-  elements.kidsModeButton.addEventListener("click", () => setMode("kids"));
-  elements.expertModeButton.addEventListener("click", () => setMode("expert"));
-  elements.soloModeButton.addEventListener("click", () => setSessionMode("solo"));
-  elements.duoModeButton.addEventListener("click", () => setSessionMode("duo"));
-  elements.voiceToggleButton.addEventListener("click", () => setVoiceEnabled(!state.voiceEnabled));
-  elements.speakButton.addEventListener("click", speakQuestion);
-  elements.saveProfileButton.addEventListener("click", saveProfileFromInput);
+  [
+    "mapNavHubButton",
+    "mapNavStatsButton",
+    "mapNavRewardsButton",
+    "openMapButton",
+    "backToHubButton",
+    "enterLevelButton",
+    "returnToMapButton",
+    "restartButton",
+    "kidsModeButton",
+    "expertModeButton",
+    "soloModeButton",
+    "duoModeButton",
+    "voiceToggleButton",
+    "speakButton",
+    "saveProfileButton",
+    "checkpointPrimaryButton",
+    "checkpointRetryButton"
+  ].forEach((id) => bindClick(elements[id], id));
+
   elements.profileNameInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       saveProfileFromInput();
     }
   });
-  elements.checkpointPrimaryButton.addEventListener("click", returnToMapFromCheckpoint);
-  elements.checkpointRetryButton.addEventListener("click", beginLevelFromMap);
+
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("button[id]");
+    if (!button) {
+      return;
+    }
+    const knownIds = [
+      "mapNavHubButton",
+      "mapNavStatsButton",
+      "mapNavRewardsButton",
+      "openMapButton",
+      "backToHubButton",
+      "enterLevelButton",
+      "returnToMapButton",
+      "restartButton",
+      "kidsModeButton",
+      "expertModeButton",
+      "soloModeButton",
+      "duoModeButton",
+      "voiceToggleButton",
+      "speakButton",
+      "saveProfileButton",
+      "checkpointPrimaryButton",
+      "checkpointRetryButton"
+    ];
+    if (knownIds.includes(button.id) && !button.dataset.codexHandled) {
+      button.dataset.codexHandled = "true";
+      window.setTimeout(() => {
+        delete button.dataset.codexHandled;
+      }, 0);
+      runButtonAction(button.id);
+    }
+  });
 }
 
 function init() {
