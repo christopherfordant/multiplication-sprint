@@ -9,6 +9,8 @@ const BONUS_TIME = 2;
 const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const MOBILE_PARTICLE_COUNT = window.innerWidth < 768 ? 10 : 18;
 
+console.log("🎮 Script chargé - Initialisation du jeu en cours...");
+
 const BADGES = {
   first_win: { title: "Premier pas", description: "Valider un premier niveau" },
   star_hunter: { title: "Chasseur d'etoiles", description: "Gagner 3 etoiles sur un niveau" },
@@ -433,9 +435,35 @@ function selectPreferredVoice() {
 }
 
 function showScreen(screen) {
-  [elements.startScreen, elements.mapScreen, elements.gameScreen, elements.checkpointScreen, elements.endScreen]
-    .forEach((node) => node.classList.remove("screen-active"));
+  const screens = [elements.startScreen, elements.mapScreen, elements.gameScreen, elements.checkpointScreen, elements.endScreen];
+  
+  // Hide other screens
+  screens.forEach((node) => {
+    if (node !== screen && node.classList.contains("screen-active")) {
+      node.classList.remove("screen-active");
+    }
+  });
+
+  // Show target screen - add class first so display: block is applied
   screen.classList.add("screen-active");
+  
+  // Then animate content with GSAP if available
+  if (window.gsap && !REDUCED_MOTION) {
+    // Animate the screen itself
+    gsap.fromTo(screen, 
+      { opacity: 0 }, 
+      { opacity: 1, duration: 0.4, ease: "power2.out" }
+    );
+    
+    // Animate content elements with stagger
+    const cards = screen.querySelectorAll(".hero-card, .question-card, .map-screen-shell, .end-card, .checkpoint-card");
+    if (cards.length > 0) {
+      gsap.fromTo(cards, 
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "back.out", stagger: 0.08 }
+      );
+    }
+  }
 }
 
 function updateBestScoreDisplays() {
@@ -523,7 +551,22 @@ function calculateStars(levelScore, required) {
 
 function renderStars(container, count) {
   [...container.children].forEach((star, index) => {
-    star.classList.toggle("star-on", index < count);
+    const shouldBeOn = index < count;
+    star.classList.toggle("star-on", shouldBeOn);
+    
+    // Animate stars with GSAP
+    if (shouldBeOn && window.gsap && !REDUCED_MOTION) {
+      gsap.fromTo(star,
+        { scale: 0.3, opacity: 0 },
+        { 
+          scale: 1, 
+          opacity: 1, 
+          duration: 0.5, 
+          delay: index * 0.15,
+          ease: "elastic.out(1.2, 0.5)"
+        }
+      );
+    }
   });
 }
 
@@ -610,6 +653,21 @@ function renderAnswerOptions() {
     button.dataset.value = String(option);
     button.addEventListener("click", () => selectAnswer(option, button));
     elements.answerGrid.appendChild(button);
+    
+    // Add animation for button appearance
+    if (window.gsap && !REDUCED_MOTION) {
+      gsap.fromTo(button, 
+        { opacity: 0, scale: 0.8, y: 16 },
+        { 
+          opacity: 1, 
+          scale: 1, 
+          y: 0, 
+          duration: 0.35, 
+          delay: index * 0.08, 
+          ease: "back.out(1.4)" 
+        }
+      );
+    }
   });
 }
 
@@ -618,6 +676,19 @@ function setFeedback(message, type = "") {
   elements.feedbackText.classList.remove("feedback-success", "feedback-error");
   if (type === "success") elements.feedbackText.classList.add("feedback-success");
   if (type === "error") elements.feedbackText.classList.add("feedback-error");
+  
+  // Animate feedback message
+  if (window.gsap && !REDUCED_MOTION) {
+    gsap.fromTo(elements.feedbackText,
+      { opacity: 0, scale: 0.9 },
+      { 
+        opacity: 1, 
+        scale: 1, 
+        duration: 0.3,
+        ease: "back.out(1.5)"
+      }
+    );
+  }
 }
 
 function updateQuestionUI() {
@@ -769,6 +840,21 @@ function showBonus() {
   state.playerScores[state.currentPlayer] += BONUS_POINTS;
   state.timeLimit = getModeConfig().baseTime + BONUS_TIME;
   updateScoreboard();
+  
+  // Animate bonus banner
+  if (window.gsap && !REDUCED_MOTION) {
+    gsap.fromTo(elements.bonusBanner,
+      { opacity: 0, scale: 0.8, y: -20 },
+      { 
+        opacity: 1, 
+        scale: 1, 
+        y: 0, 
+        duration: 0.5,
+        ease: "back.out(1.2)"
+      }
+    );
+  }
+  
   createParticles("success");
   playSound("bonus");
   setMascotSpeech("Wouhou ! Bonus debloque.");
@@ -1117,6 +1203,8 @@ function runLoadingIntro() {
 }
 
 function bindEvents() {
+  console.log("📌 Binding events pour tous les boutons...");
+  
   [
     "mapNavHubButton",
     "mapNavStatsButton",
@@ -1135,7 +1223,13 @@ function bindEvents() {
     "saveProfileButton",
     "checkpointPrimaryButton",
     "checkpointRetryButton"
-  ].forEach((id) => bindClick(elements[id], id));
+  ].forEach((id) => {
+    const el = elements[id];
+    if (!el) {
+      console.warn(`⚠️ Élément manquant: ${id}`);
+    }
+    bindClick(el, id);
+  });
 
   elements.profileNameInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -1169,6 +1263,7 @@ function bindEvents() {
       "checkpointRetryButton"
     ];
     if (knownIds.includes(button.id) && !button.dataset.codexHandled) {
+      console.log(`🔘 Bouton cliqué: ${button.id}`);
       button.dataset.codexHandled = "true";
       window.setTimeout(() => {
         delete button.dataset.codexHandled;
@@ -1176,34 +1271,53 @@ function bindEvents() {
       runButtonAction(button.id);
     }
   });
+  
+  console.log("✅ Events bindés avec succès");
 }
 
 function init() {
+  console.log("🎮 Démarrage de l'application...");
+  
   if (window.__appBooted) {
+    console.warn("⚠️ App déjà démarrée - arrêt");
     return;
   }
   window.__appBooted = true;
   window.__appInitialized = true;
+  
+  console.log("📋 Initialisation du profil...");
   ensureActiveProfile();
   selectPreferredVoice();
   if ("speechSynthesis" in window) {
     window.speechSynthesis.onvoiceschanged = selectPreferredVoice;
   }
+  
+  console.log("⚙️ Configuration des modes...");
   setMode("kids");
   setSessionMode("solo");
   setVoiceEnabled(true);
+  
+  console.log("🎨 Mise à jour de l'UI...");
   updateBestScoreDisplays();
   updateProfileUI();
   renderMap();
   positionMascotOnMap(true);
   updateScoreboard();
   renderTimer();
+  
+  console.log("🔗 Binding des événements...");
   bindEvents();
+  
+  console.log("✨ Animation de la carte...");
   animateMapAmbient();
   setupInstallPrompt();
   registerServiceWorker();
   runLoadingIntro();
-  showScreen(elements.mapScreen);
+  
+  console.log("📺 Affichage de l'écran d'accueil...");
+  showScreen(elements.startScreen);
+  
+  console.log("✅ Application démarrée avec succès!");
 }
 
 init();

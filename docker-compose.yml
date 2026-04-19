@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # 🌐 Service Nginx (reverse proxy + static files)
+  nginx:
+    image: nginx:alpine
+    container_name: multiplication-sprint-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./:/var/www/multiplication-sprint:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - app
+    networks:
+      - multiplication-network
+    restart: unless-stopped
+
+  # 🎮 Service Node.js (application)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: multiplication-sprint-app
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - ADMIN_KEY=${ADMIN_KEY:-dev-key-change-in-production}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-change-in-production}
+      - DATABASE_URL=${DATABASE_URL:-mongodb://mongo:27017/multiplication-sprint}
+      - BASE_URL=${BASE_URL:-http://localhost}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    expose:
+      - "3000"
+    volumes:
+      - ./server.js:/app/server.js:ro
+      - ./package.json:/app/package.json:ro
+      - ./api-sync.js:/app/api-sync.js:ro
+      - ./checkpoint-animations.js:/app/checkpoint-animations.js:ro
+    depends_on:
+      - mongo
+    networks:
+      - multiplication-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 🗄️ Service MongoDB (base de données)
+  mongo:
+    image: mongo:5-alpine
+    container_name: multiplication-sprint-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-admin}
+      MONGO_INITDB_DATABASE: multiplication-sprint
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    ports:
+      - "27017:27017"
+    networks:
+      - multiplication-network
+    restart: unless-stopped
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 📊 Service Mongo Express (admin interface - DÉVELOPPEMENT UNIQUEMENT)
+  mongo-express:
+    image: mongo-express
+    container_name: multiplication-sprint-mongo-express
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER:-admin}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD:-admin}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-admin}@mongo:27017
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongo
+    networks:
+      - multiplication-network
+    restart: unless-stopped
+    profiles:
+      - dev
+
+volumes:
+  mongo-data:
+    driver: local
+  mongo-config:
+    driver: local
+
+networks:
+  multiplication-network:
+    driver: bridge

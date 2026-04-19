@@ -1,0 +1,253 @@
+/* 🎬 Animations améliorées pour Checkpoint et transition vers Carte */
+
+/* Animation de retour à la carte */
+@keyframes slideOutToMap {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(-20px) scale(0.95);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-100px) scale(0.85);
+  }
+}
+
+/* Animation d'arrivée sur la carte */
+@keyframes slideInFromCheckpoint {
+  0% {
+    opacity: 0;
+    transform: translateY(100px) scale(0.85);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Animation d'apparition du checkpoint */
+@keyframes checkpointAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) rotateX(-10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotateX(0deg);
+  }
+}
+
+/* Animation des étoiles au checkpoint */
+@keyframes starPop {
+  0% {
+    transform: scale(0) rotate(-180deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1) rotate(10deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* Animation de notification de déblocage */
+@keyframes unlockNotification {
+  0% {
+    transform: translateY(20px) scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: translateY(-5px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Animation de score qui augmente */
+@keyframes scoreIncrease {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+}
+
+/* Animation pour la barre de progression du checkpoint */
+@keyframes progressFill {
+  0% {
+    width: 0;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+/* Classe pour déclencher l'animation de départ */
+.checkpoint-card.exit-to-map {
+  animation: slideOutToMap 0.6s ease-out forwards;
+}
+
+/* Classe pour déclencher l'animation d'arrivée */
+.map-screen-shell.enter-from-checkpoint {
+  animation: slideInFromCheckpoint 0.6s ease-out forwards;
+}
+
+/* Amélioration visuelle du checkpoint */
+.checkpoint-card {
+  backdrop-filter: blur(0.5px);
+  transform-origin: center;
+}
+
+/* Animation des résultats */
+.checkpoint-card .results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.checkpoint-card .result-item {
+  animation: unlockNotification 0.5s ease-out;
+}
+
+.checkpoint-card .result-item:nth-child(1) { animation-delay: 0.1s; }
+.checkpoint-card .result-item:nth-child(2) { animation-delay: 0.2s; }
+.checkpoint-card .result-item:nth-child(3) { animation-delay: 0.3s; }
+.checkpoint-card .result-item:nth-child(4) { animation-delay: 0.4s; }
+
+/* Animation des étoiles */
+.checkpoint-card .stars-row .star-item {
+  animation: starPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.checkpoint-card .stars-row .star-item:nth-child(1) { animation-delay: 0.2s; }
+.checkpoint-card .stars-row .star-item:nth-child(2) { animation-delay: 0.35s; }
+.checkpoint-card .stars-row .star-item:nth-child(3) { animation-delay: 0.5s; }
+
+/* Animation des badges */
+.checkpoint-card .badge-shelf {
+  animation: unlockNotification 0.6s ease-out 0.6s backwards;
+}
+
+.checkpoint-card .badge-chip {
+  animation: unlockNotification 0.5s ease-out;
+}
+
+.checkpoint-card .badge-chip:nth-child(1) { animation-delay: 0.7s; }
+.checkpoint-card .badge-chip:nth-child(2) { animation-delay: 0.8s; }
+.checkpoint-card .badge-chip:nth-child(3) { animation-delay: 0.9s; }
+
+/* Animation du bouton d'action */
+.checkpoint-card .checkpoint-actions {
+  animation: unlockNotification 0.6s ease-out 1s backwards;
+}
+
+/* Animation du message de victoire */
+.checkpoint-card #checkpointWinner {
+  animation: unlockNotification 0.5s ease-out 0.5s backwards;
+}
+
+/* Effet de pulse pour les niveaux débloqués */
+@keyframes levelUnlock {
+  0% {
+    box-shadow: 0 0 0 0 rgba(31, 111, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(31, 111, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(31, 111, 255, 0);
+  }
+}
+
+/* Animation pour les nœuds de la carte nouvellement débloqués */
+.map-node.newly-unlocked {
+  animation: levelUnlock 0.6s ease-out;
+}
+
+/* Transition fluide du checkpoint vers la carte */
+.screen-transition-checkpoint-to-map {
+  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Glow effect pour les niveaux complétés */
+@keyframes completionGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(33, 192, 107, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(33, 192, 107, 0.9));
+  }
+}
+
+.map-node.completed {
+  animation: completionGlow 1.5s ease-in-out infinite;
+}
+
+/* Animation pour les étoiles sur la carte */
+.node-stars {
+  display: inline-block;
+  margin-left: 4px;
+}
+
+@keyframes starsSparkle {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.map-node.completed .node-stars {
+  animation: starsSparkle 1.2s ease-in-out infinite;
+}
+
+/* Responsive et optimisation */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes slideOutToMap,
+  @keyframes slideInFromCheckpoint,
+  @keyframes checkpointAppear,
+  @keyframes starPop,
+  @keyframes unlockNotification,
+  @keyframes scoreIncrease,
+  @keyframes progressFill,
+  @keyframes levelUnlock,
+  @keyframes completionGlow,
+  @keyframes starsSparkle {
+    0% { 
+      opacity: 1; 
+      transform: none; 
+    }
+    100% { 
+      opacity: 1; 
+      transform: none; 
+    }
+  }
+
+  .checkpoint-card.exit-to-map,
+  .map-screen-shell.enter-from-checkpoint,
+  .checkpoint-card .result-item,
+  .checkpoint-card .stars-row .star-item,
+  .checkpoint-card .badge-chip,
+  .checkpoint-card .checkpoint-actions,
+  .checkpoint-card #checkpointWinner,
+  .map-node.newly-unlocked,
+  .map-node.completed,
+  .map-node.completed .node-stars {
+    animation: none !important;
+  }
+}

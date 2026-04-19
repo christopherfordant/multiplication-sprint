@@ -1,16 +1,77 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+  <!-- Meta de base -->
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <meta name="theme-color" content="#1f6fff">
-  <meta name="description" content="Multiplication Sprint, une aventure de multiplications avec carte du monde, mascotte, profils enfant et tableau de bord parent.">
-  <title>Multiplication Sprint</title>
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  
+  <!-- SEO -->
+  <title>Multiplication Sprint - Jeu Éducatif de Multiplication pour Enfants</title>
+  <meta name="description" content="Multiplication Sprint : un jeu éducatif ludique et interactif pour maîtriser les multiplications. Carte du monde, profils enfants, système de progression, animations fluides et tableau de bord parent.">
+  <meta name="keywords" content="jeu éducatif, multiplication, enfants, apprentissage, mathématiques, jeu interactif, carte du monde">
+  <meta name="author" content="Multiplication Sprint Team">
+  <meta name="language" content="French">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  
+  <!-- Open Graph (Réseaux Sociaux) -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://multiplication-sprint.com/">
+  <meta property="og:title" content="Multiplication Sprint - Jeu de Multiplication">
+  <meta property="og:description" content="Un jeu éducatif pour enfants avec carte du monde, profils et système de progression. Apprendre les multiplications en s'amusant.">
+  <meta property="og:image" content="/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="fr_FR">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Multiplication Sprint - Jeu de Multiplication">
+  <meta name="twitter:description" content="Un jeu éducatif ludique pour maîtriser les multiplications avec carte du monde et profils enfants.">
+  <meta name="twitter:image" content="/og-image.png">
+  
+  <!-- Structuré JSON-LD pour SEO -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "EducationalApplication",
+    "name": "Multiplication Sprint",
+    "description": "Un jeu éducatif ludique pour maîtriser les multiplications",
+    "url": "https://multiplication-sprint.com",
+    "applicationCategory": "EducationalApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "EUR"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "Multiplication Sprint Team"
+    }
+  }
+  </script>
+  
+  <!-- Liens -->
+  <link rel="canonical" href="https://multiplication-sprint.com/">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="alternate" hreflang="fr" href="https://multiplication-sprint.com/">
+  <link rel="alternate" hreflang="x-default" href="https://multiplication-sprint.com/">
+  
+  <!-- Polices Google -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css?v=20260419b">
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="animations-enhanced.css?v=20260419b">
+  
+  <!-- Performance DNS Prefetch -->
+  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
 </head>
 <body>
   <div id="loadingScreen" class="loading-screen" aria-live="polite">
@@ -395,6 +456,8 @@
     });
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
+  <script src="api-sync.js?v=20260419b" defer></script>
+  <script src="checkpoint-animations.js?v=20260419b" defer></script>
   <script src="script.js?v=20260419b" defer></script>
 </body>
 </html>
