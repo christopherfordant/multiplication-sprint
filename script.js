@@ -1104,6 +1104,11 @@ function bindEvents() {
 }
 
 function init() {
+  if (window.__appBooted) {
+    return;
+  }
+  window.__appBooted = true;
+  window.__appInitialized = true;
   ensureActiveProfile();
   selectPreferredVoice();
   if ("speechSynthesis" in window) {
