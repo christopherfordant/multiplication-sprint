@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#79d0ff"/>
+      <stop offset="100%" stop-color="#1f6fff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <circle cx="388" cy="126" r="62" fill="#ffd54a"/>
+  <rect x="78" y="288" width="356" height="88" rx="44" fill="#ffffff" opacity="0.94"/>
+  <text x="256" y="240" text-anchor="middle" font-size="156" font-family="Arial, sans-serif" font-weight="700" fill="#ffffff">×</text>
+  <text x="256" y="350" text-anchor="middle" font-size="58" font-family="Arial, sans-serif" font-weight="700" fill="#1f6fff">7 x 8 = ?</text>
+</svg>

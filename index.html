@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1f6fff">
+  <meta name="description" content="Multiplication Sprint, un jeu mobile et web pour s'entraîner aux multiplications avec chrono, bonus et niveaux.">
+  <title>Multiplication Sprint</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar" aria-label="Informations du jeu">
+      <div class="brand-badge">
+        <span class="brand-icon" aria-hidden="true">★</span>
+        <span>Multiplication Sprint</span>
+      </div>
+      <button id="installButton" class="ghost-button hidden" type="button" aria-label="Installer l'application">
+        Installer
+      </button>
+    </header>
+
+    <main class="game-frame">
+      <div class="floating floating-star" aria-hidden="true"></div>
+      <div class="floating floating-sun" aria-hidden="true"></div>
+      <div class="floating floating-cloud" aria-hidden="true"></div>
+
+      <section id="startScreen" class="screen screen-active" aria-labelledby="startTitle">
+        <div class="hero-card">
+          <p class="eyebrow">Jeu éducatif rapide</p>
+          <h1 id="startTitle">Deviens le champion des multiplications</h1>
+          <p class="hero-text">
+            10 niveaux, 10 questions par niveau, un chrono, des bonus et un meilleur score sauvegardé sur ton appareil.
+          </p>
+
+          <div class="hero-stats" aria-label="Aperçu des règles">
+            <article class="stat-chip">
+              <strong>10</strong>
+              <span>niveaux</span>
+            </article>
+            <article class="stat-chip">
+              <strong>10 s</strong>
+              <span>par question</span>
+            </article>
+            <article class="stat-chip">
+              <strong>+ bonus</strong>
+              <span>tous les 3 succès</span>
+            </article>
+          </div>
+
+          <div class="best-score-card">
+            <span>Meilleur score</span>
+            <strong id="bestScoreStart">0</strong>
+          </div>
+
+          <button id="startButton" class="primary-button" type="button">
+            Jouer maintenant
+          </button>
+        </div>
+      </section>
+
+      <section id="gameScreen" class="screen" aria-labelledby="questionText" aria-live="polite">
+        <div class="game-header">
+          <div class="pill">Niveau <span id="levelDisplay">1</span>/10</div>
+          <div class="pill">Question <span id="questionCountDisplay">1</span>/10</div>
+        </div>
+
+        <div class="timer-panel" aria-label="Chronomètre de la question">
+          <div class="timer-label-row">
+            <span>Temps restant</span>
+            <strong id="timerText">10.0 s</strong>
+          </div>
+          <div class="timer-track" role="progressbar" aria-valuemin="0" aria-valuemax="10" aria-valuenow="10" aria-labelledby="timerText">
+            <div id="timerBar" class="timer-bar"></div>
+          </div>
+        </div>
+
+        <div class="question-card" id="questionCard">
+          <p class="question-caption">Résous vite et bien</p>
+          <h2 id="questionText" class="question-text">2 × 3</h2>
+          <form id="answerForm" class="answer-form" autocomplete="off">
+            <label for="answerInput" class="sr-only">Ta réponse</label>
+            <input
+              id="answerInput"
+              name="answer"
+              type="number"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              class="answer-input"
+              placeholder="Ta réponse"
+              aria-describedby="feedbackText"
+              required
+            >
+            <button class="secondary-button" type="submit">Valider</button>
+          </form>
+          <p id="feedbackText" class="feedback-text" aria-live="assertive">Bonne chance !</p>
+          <div id="bonusBanner" class="bonus-banner" aria-live="polite"></div>
+          <div id="particleLayer" class="particle-layer" aria-hidden="true"></div>
+        </div>
+
+        <div class="scoreboard" aria-label="Score actuel">
+          <article class="score-card">
+            <span>Score</span>
+            <strong id="scoreDisplay">0</strong>
+          </article>
+          <article class="score-card">
+            <span>Série</span>
+            <strong id="streakDisplay">0</strong>
+          </article>
+          <article class="score-card">
+            <span>Précision</span>
+            <strong id="accuracyDisplay">100%</strong>
+          </article>
+          <article class="score-card">
+            <span>Record</span>
+            <strong id="bestScoreGame">0</strong>
+          </article>
+        </div>
+      </section>
+
+      <section id="endScreen" class="screen" aria-labelledby="endTitle">
+        <div class="end-card">
+          <p class="eyebrow" id="endEyebrow">Fin de partie</p>
+          <h2 id="endTitle">Belle tentative !</h2>
+          <p id="endMessage" class="hero-text">
+            Tu peux recommencer tout de suite et battre ton record.
+          </p>
+
+          <div class="results-grid">
+            <article class="result-item">
+              <span>Score final</span>
+              <strong id="finalScore">0</strong>
+            </article>
+            <article class="result-item">
+              <span>Niveau atteint</span>
+              <strong id="finalLevel">1</strong>
+            </article>
+            <article class="result-item">
+              <span>Précision</span>
+              <strong id="finalAccuracy">0%</strong>
+            </article>
+            <article class="result-item">
+              <span>Meilleur score</span>
+              <strong id="bestScoreEnd">0</strong>
+            </article>
+          </div>
+
+          <button id="restartButton" class="primary-button" type="button">Rejouer</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
+  <script src="script.js" defer></script>
+</body>
+</html>

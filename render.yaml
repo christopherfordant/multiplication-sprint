@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: multiplication-sprint
+    env: static
+    staticPublishPath: .
+    pullRequestPreviewsEnabled: false
