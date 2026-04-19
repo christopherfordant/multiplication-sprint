@@ -1051,19 +1051,24 @@ function registerServiceWorker() {
 }
 
 function runLoadingIntro() {
+  const hideLoading = () => {
+    elements.loadingScreen.classList.add("loading-hidden");
+  };
+
+  window.setTimeout(hideLoading, 1800);
+
   if (!window.gsap || REDUCED_MOTION) {
     elements.loadingBar.style.width = "100%";
-    window.setTimeout(() => elements.loadingScreen.classList.add("loading-hidden"), 500);
+    window.setTimeout(hideLoading, 500);
     return;
   }
+
   gsap.timeline({
-    onComplete: () => {
-      elements.loadingScreen.classList.add("loading-hidden");
-    }
+    onComplete: hideLoading
   })
-    .to(elements.loadingBar, { width: "100%", duration: 1.2, ease: "power2.inOut" })
-    .to(".loading-stars span", { y: -12, duration: 0.18, stagger: 0.08, repeat: 3, yoyo: true }, "<")
-    .to(elements.loadingScreen, { opacity: 0, duration: 0.4, ease: "power2.out" });
+    .to(elements.loadingBar, { width: "100%", duration: 0.9, ease: "power2.inOut" })
+    .to(".loading-stars span", { y: -12, duration: 0.16, stagger: 0.06, repeat: 2, yoyo: true }, "<")
+    .to(elements.loadingScreen, { opacity: 0, duration: 0.25, ease: "power2.out" });
 }
 
 function bindEvents() {
