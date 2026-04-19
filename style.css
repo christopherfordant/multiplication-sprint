@@ -498,6 +498,13 @@ h1 {
   color: white;
 }
 
+.map-topnav {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
 .map-header {
   display: flex;
   justify-content: space-between;
@@ -513,12 +520,12 @@ h1 {
 
 .world-map {
   position: relative;
-  min-height: 560px;
+  min-height: 620px;
   border-radius: 30px;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 12%, rgba(255, 236, 162, 0.45), transparent 15%),
-    linear-gradient(180deg, #2249a8 0%, #2e7ed9 32%, #48a95e 58%, #234f2c 100%);
+    linear-gradient(180deg, #3654ad 0%, #2b73cd 28%, #47a8cf 56%, #2a6381 100%);
 }
 
 .world-backdrop {
@@ -527,7 +534,124 @@ h1 {
   background:
     radial-gradient(circle at 12% 18%, rgba(255,255,255,0.24), transparent 10%),
     radial-gradient(circle at 80% 28%, rgba(255,255,255,0.18), transparent 10%),
-    radial-gradient(circle at 50% 70%, rgba(255,223,123,0.16), transparent 25%);
+    radial-gradient(circle at 50% 70%, rgba(255,223,123,0.16), transparent 25%),
+    radial-gradient(circle at 20% 84%, rgba(255,255,255,0.14), transparent 12%),
+    radial-gradient(circle at 72% 84%, rgba(255,255,255,0.12), transparent 10%);
+}
+
+.continent,
+.bridge,
+.zone-label {
+  position: absolute;
+}
+
+.continent {
+  background: linear-gradient(180deg, #9af25a 0%, #3fbb37 58%, #1b7b2d 100%);
+  border: 4px solid #125a25;
+  box-shadow:
+    inset 0 -18px 0 rgba(247, 203, 108, 0.85),
+    0 16px 24px rgba(0, 0, 0, 0.18);
+}
+
+.continent::before,
+.continent::after {
+  content: "";
+  position: absolute;
+  background: rgba(255,255,255,0.18);
+  border-radius: 50%;
+}
+
+.continent-west {
+  left: 3%;
+  top: 14%;
+  width: 24%;
+  height: 47%;
+  clip-path: polygon(10% 8%, 42% 2%, 82% 10%, 96% 28%, 90% 56%, 100% 77%, 78% 98%, 46% 88%, 24% 100%, 0 80%, 6% 52%, 0 28%);
+}
+
+.continent-north {
+  left: 29%;
+  top: 6%;
+  width: 26%;
+  height: 28%;
+  clip-path: polygon(6% 18%, 26% 2%, 54% 4%, 84% 0, 98% 24%, 88% 60%, 100% 86%, 70% 96%, 42% 82%, 18% 100%, 0 70%);
+}
+
+.continent-center {
+  left: 34%;
+  top: 34%;
+  width: 26%;
+  height: 33%;
+  clip-path: polygon(10% 0, 84% 8%, 100% 34%, 88% 80%, 60% 100%, 30% 92%, 10% 100%, 0 72%, 2% 40%);
+}
+
+.continent-east {
+  right: 4%;
+  top: 12%;
+  width: 28%;
+  height: 44%;
+  clip-path: polygon(8% 10%, 44% 0, 86% 8%, 100% 34%, 92% 68%, 100% 92%, 64% 100%, 38% 86%, 12% 94%, 0 62%, 4% 28%);
+}
+
+.continent-south {
+  right: 16%;
+  bottom: 9%;
+  width: 22%;
+  height: 22%;
+  clip-path: polygon(18% 0, 72% 8%, 100% 36%, 84% 100%, 20% 92%, 0 50%);
+}
+
+.bridge {
+  height: 16px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #7b4d2a, #523116);
+  border: 3px solid #311b0a;
+  box-shadow: 0 8px 14px rgba(0,0,0,0.18);
+}
+
+.bridge-one {
+  left: 23%;
+  top: 31%;
+  width: 12%;
+  transform: rotate(-8deg);
+}
+
+.bridge-two {
+  left: 57%;
+  top: 41%;
+  width: 10%;
+  transform: rotate(10deg);
+}
+
+.bridge-three {
+  right: 21%;
+  bottom: 24%;
+  width: 10%;
+  transform: rotate(18deg);
+}
+
+.zone-label {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(13, 31, 82, 0.44);
+  color: #fff6b5;
+  font-family: "Fredoka", sans-serif;
+  font-size: 0.92rem;
+  letter-spacing: 0.04em;
+}
+
+.zone-west { left: 9%; top: 11%; }
+.zone-north { left: 38%; top: 4%; }
+.zone-center { left: 43%; top: 32%; }
+.zone-east { right: 13%; top: 10%; }
+.zone-south { right: 18%; bottom: 5%; }
+.map-path {
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.9) 0 18%, transparent 19%),
+    radial-gradient(circle, rgba(255,214,74,0.85) 0 22%, transparent 23%);
+  background-size: 42px 42px, 42px 42px;
+  background-position: 0 0, 20px 20px;
+  opacity: 0.22;
 }
 
 .castle-silhouette {
@@ -589,7 +713,7 @@ h1 {
   place-items: center;
   border-radius: 50%;
   border: 4px solid rgba(255,255,255,0.38);
-  background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,225,146,0.88));
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,225,146,0.9));
   box-shadow: 0 12px 30px rgba(0,0,0,0.18);
   color: var(--ink);
   font-family: "Fredoka", sans-serif;
@@ -603,7 +727,8 @@ h1 {
 }
 
 .map-node.selected {
-  outline: 6px solid rgba(255,255,255,0.26);
+  outline: 6px solid rgba(255,255,255,0.3);
+  box-shadow: 0 0 0 10px rgba(255,255,255,0.08), 0 14px 34px rgba(0,0,0,0.22);
 }
 
 .map-node.boss-node {
@@ -992,6 +1117,12 @@ body.screen-shake .game-frame {
     grid-template-columns: 1fr;
   }
 
+  .map-topnav {
+    justify-content: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
   .map-header {
     display: grid;
   }
@@ -1006,6 +1137,11 @@ body.screen-shake .game-frame {
 
   .world-map {
     min-height: 640px;
+  }
+
+  .zone-label {
+    font-size: 0.78rem;
+    padding: 6px 10px;
   }
 }
 

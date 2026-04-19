@@ -139,6 +139,12 @@
 
       <section id="mapScreen" class="screen" aria-labelledby="mapTitle">
         <div class="map-screen-shell">
+          <div class="map-topnav">
+            <button id="mapNavHubButton" class="ghost-button" type="button">Accueil</button>
+            <button id="mapNavStatsButton" class="ghost-button" type="button">Stats parent</button>
+            <button id="mapNavRewardsButton" class="ghost-button" type="button">Recompenses</button>
+          </div>
+
           <div class="map-header">
             <div class="brand-badge map-chip">
               <span>Explorateur</span>
@@ -153,12 +159,25 @@
 
           <div class="world-map" id="worldMap">
             <div class="world-backdrop"></div>
+            <div class="continent continent-west" aria-hidden="true"></div>
+            <div class="continent continent-north" aria-hidden="true"></div>
+            <div class="continent continent-center" aria-hidden="true"></div>
+            <div class="continent continent-east" aria-hidden="true"></div>
+            <div class="continent continent-south" aria-hidden="true"></div>
+            <div class="zone-label zone-west">Prairies</div>
+            <div class="zone-label zone-north">Forets</div>
+            <div class="zone-label zone-center">Desert</div>
+            <div class="zone-label zone-east">Falaises</div>
+            <div class="zone-label zone-south">Iles du boss</div>
             <div class="castle-silhouette" aria-hidden="true">
               <div class="tower left"></div>
               <div class="tower right"></div>
               <div class="castle-main"></div>
               <div class="boss-orb"></div>
             </div>
+            <div class="bridge bridge-one" aria-hidden="true"></div>
+            <div class="bridge bridge-two" aria-hidden="true"></div>
+            <div class="bridge bridge-three" aria-hidden="true"></div>
             <div id="mapPath" class="map-path" aria-hidden="true"></div>
             <div id="mapNodes" class="map-nodes" aria-label="Carte des niveaux"></div>
             <div id="mapMascot" class="map-mascot" aria-hidden="true">

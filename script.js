@@ -20,16 +20,16 @@ const BADGES = {
 };
 
 const MAP_LEVELS = [
-  { x: 8, y: 74, title: "Prairie des 2", description: "Les premiers pas du sentier enchanté." },
-  { x: 18, y: 56, title: "Pont des etoiles", description: "Des multiplications simples sur le vieux pont." },
-  { x: 31, y: 70, title: "Colline des nuages", description: "Le chemin grimpe avec quelques revisions." },
-  { x: 42, y: 49, title: "Foret sucree", description: "Les tables se melangent dans la foret." },
-  { x: 54, y: 66, title: "Lac des lucioles", description: "Un niveau plus rythmé au bord de l'eau." },
-  { x: 65, y: 46, title: "Falaises d'or", description: "Le vent souffle, les calculs s'accelerent." },
-  { x: 74, y: 62, title: "Passage lunaire", description: "Le sentier devient plus technique." },
-  { x: 81, y: 40, title: "Tour du veilleur", description: "Les meilleures tables reviennent t'entrainer." },
-  { x: 88, y: 58, title: "Cour du boss", description: "Dernier camp avant le chateau." },
-  { x: 92, y: 18, title: "Chateau du boss", description: "Le boss final garde le chateau des multiplications.", boss: true }
+  { x: 11, y: 68, title: "Prairie des 2", description: "Les premiers pas du sentier enchante." },
+  { x: 19, y: 48, title: "Pont des etoiles", description: "Des multiplications simples sur le vieux pont." },
+  { x: 33, y: 24, title: "Colline des nuages", description: "Le chemin grimpe avec quelques revisions." },
+  { x: 43, y: 20, title: "Foret sucree", description: "Les tables se melangent dans la foret." },
+  { x: 47, y: 50, title: "Lac des lucioles", description: "Un niveau plus rythme au coeur du desert." },
+  { x: 56, y: 56, title: "Falaises d'or", description: "Le vent souffle, les calculs s'accelerent." },
+  { x: 72, y: 34, title: "Passage lunaire", description: "Le sentier devient plus technique." },
+  { x: 84, y: 23, title: "Tour du veilleur", description: "Les meilleures tables reviennent t'entrainer." },
+  { x: 79, y: 80, title: "Cour du boss", description: "Dernier camp avant le chateau." },
+  { x: 90, y: 17, title: "Chateau du boss", description: "Le boss final garde le chateau des multiplications.", boss: true }
 ];
 
 const MODES = {
@@ -83,6 +83,9 @@ const elements = {
   gameScreen: document.getElementById("gameScreen"),
   checkpointScreen: document.getElementById("checkpointScreen"),
   endScreen: document.getElementById("endScreen"),
+  mapNavHubButton: document.getElementById("mapNavHubButton"),
+  mapNavStatsButton: document.getElementById("mapNavStatsButton"),
+  mapNavRewardsButton: document.getElementById("mapNavRewardsButton"),
   openMapButton: document.getElementById("openMapButton"),
   backToHubButton: document.getElementById("backToHubButton"),
   enterLevelButton: document.getElementById("enterLevelButton"),
@@ -1062,6 +1065,15 @@ function runLoadingIntro() {
 }
 
 function bindEvents() {
+  elements.mapNavHubButton.addEventListener("click", () => showScreen(elements.startScreen));
+  elements.mapNavStatsButton.addEventListener("click", () => {
+    showScreen(elements.startScreen);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: REDUCED_MOTION ? "auto" : "smooth" });
+  });
+  elements.mapNavRewardsButton.addEventListener("click", () => {
+    showScreen(elements.startScreen);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: REDUCED_MOTION ? "auto" : "smooth" });
+  });
   elements.openMapButton.addEventListener("click", openMap);
   elements.backToHubButton.addEventListener("click", () => showScreen(elements.startScreen));
   elements.enterLevelButton.addEventListener("click", beginLevelFromMap);
