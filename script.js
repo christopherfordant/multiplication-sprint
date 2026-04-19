@@ -24,8 +24,8 @@ const MODES = {
       { a: [5, 8], b: [4, 8] },
       { a: [6, 9], b: [5, 9] },
       { a: [7, 10], b: [6, 10] },
-      { a: [8, 12], b: [7, 11] },
-      { a: [9, 14], b: [8, 12] }
+      { a: [8, 10], b: [7, 10] },
+      { a: [9, 10], b: [8, 10] }
     ]
   },
   expert: {
@@ -41,11 +41,11 @@ const MODES = {
       { a: [4, 8], b: [4, 8] },
       { a: [5, 9], b: [4, 9] },
       { a: [6, 10], b: [5, 10] },
-      { a: [7, 11], b: [6, 11] },
-      { a: [8, 12], b: [7, 12] },
-      { a: [9, 14], b: [8, 12] },
-      { a: [10, 16], b: [9, 14] },
-      { a: [12, 20], b: [10, 15] }
+      { a: [7, 10], b: [6, 10] },
+      { a: [8, 10], b: [7, 10] },
+      { a: [9, 10], b: [8, 10] },
+      { a: [9, 10], b: [9, 10] },
+      { a: [10, 10], b: [9, 10] }
     ]
   }
 };
@@ -307,7 +307,12 @@ function renderStars(container, count) {
 }
 
 function generateQuestion() {
-  const config = getModeConfig().ranges[state.level - 1];
+  const currentLevelIndex = state.level - 1;
+  const shouldReviewPreviousLevel = state.level > 1 && Math.random() < 0.35;
+  const selectedLevelIndex = shouldReviewPreviousLevel
+    ? randomBetween(0, currentLevelIndex - 1)
+    : currentLevelIndex;
+  const config = getModeConfig().ranges[selectedLevelIndex];
   const first = randomBetween(config.a[0], config.a[1]);
   const second = randomBetween(config.b[0], config.b[1]);
   return { first, second, answer: first * second };
