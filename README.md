@@ -20,6 +20,13 @@ Jeu web mobile-first de multiplication avec niveaux, chrono, bonus, score, meill
 - bouton pour relire la question
 - mode `2 joueurs local` avec alternance des tours et scores separes
 
+## V4 incluse
+
+- profils enfants avec prenom sauvegarde en local
+- badges a debloquer selon les performances
+- affichage persistant des badges sur l'accueil et l'ecran final
+- meilleure selection des voix francaises disponibles dans le navigateur
+
 ## Fichiers
 
 - `index.html` : structure des écrans et chargement de GSAP via CDN

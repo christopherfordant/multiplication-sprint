@@ -54,6 +54,25 @@
             Choisis ton mode, joue seul ou a 2 joueurs, ecoute la multiplication lue a voix haute et gagne jusqu'a 3 etoiles par niveau.
           </p>
 
+          <div class="profile-panel">
+            <div class="profile-header">
+              <div>
+                <p class="selection-title">Profil enfant</p>
+                <strong id="activeProfileName">Champion</strong>
+              </div>
+              <div class="profile-mini">
+                <span>Badges</span>
+                <strong id="badgeCountStart">0</strong>
+              </div>
+            </div>
+            <div class="profile-form">
+              <label for="profileNameInput" class="sr-only">Prenom du profil</label>
+              <input id="profileNameInput" class="profile-input" type="text" maxlength="18" placeholder="Entre un prenom">
+              <button id="saveProfileButton" class="ghost-button" type="button">Sauver le profil</button>
+            </div>
+            <div id="badgeShelfStart" class="badge-shelf" aria-label="Badges debloques"></div>
+          </div>
+
           <div class="selection-grid">
             <div class="selection-block">
               <p class="selection-title">Difficulte</p>
@@ -240,6 +259,7 @@
           </div>
 
           <p id="checkpointWinner" class="hero-text"></p>
+          <div id="badgeShelfCheckpoint" class="badge-shelf" aria-label="Nouveaux badges"></div>
 
           <div class="checkpoint-actions">
             <button id="checkpointPrimaryButton" class="primary-button" type="button">Continuer</button>
@@ -282,6 +302,7 @@
           </div>
 
           <p id="winnerMessage" class="hero-text"></p>
+          <div id="badgeShelfEnd" class="badge-shelf" aria-label="Badges du profil"></div>
 
           <button id="restartButton" class="primary-button" type="button">Rejouer</button>
         </div>

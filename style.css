@@ -38,6 +38,10 @@ button {
   border: 0;
 }
 
+input {
+  font: inherit;
+}
+
 .loading-screen {
   position: fixed;
   inset: 0;
@@ -350,13 +354,100 @@ h1 {
 .game-header,
 .checkpoint-actions,
 .player-panel,
-.feature-strip {
+.feature-strip,
+.profile-form,
+.profile-header,
+.badge-shelf {
   display: grid;
   gap: 14px;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .selection-grid {
   gap: 18px;
+}
+
+.profile-panel {
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: var(--shadow);
+}
+
+.profile-header {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.profile-mini {
+  text-align: center;
+}
+
+.profile-mini span,
+.profile-mini strong {
+  display: block;
+}
+
+.profile-mini strong {
+  font-family: "Fredoka", sans-serif;
+  font-size: 1.35rem;
+}
+
+.profile-form {
+  grid-template-columns: 1fr auto;
+  margin-top: 12px;
+}
+
+.profile-input {
+  min-height: 52px;
+  padding: 12px 16px;
+  border: 3px solid rgba(31, 111, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.profile-input:focus-visible {
+  outline: none;
+  border-color: rgba(31, 111, 255, 0.5);
+}
+
+.badge-shelf {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin-top: 12px;
+}
+
+.badge-chip {
+  padding: 12px 14px;
+  border-radius: 18px;
+  text-align: left;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 232, 130, 0.35));
+  border: 2px solid rgba(255, 213, 74, 0.4);
+  box-shadow: 0 12px 24px rgba(255, 191, 41, 0.16);
+}
+
+.badge-chip strong,
+.badge-chip span {
+  display: block;
+}
+
+.badge-chip strong {
+  font-family: "Fredoka", sans-serif;
+  margin-bottom: 4px;
+}
+
+.badge-chip-new {
+  animation: badgePulse 700ms ease;
 }
 
 .selection-block {
@@ -709,6 +800,12 @@ h1 {
   display: none;
 }
 
+@keyframes badgePulse {
+  0% { transform: scale(0.92); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
 body.screen-shake .game-frame {
   animation: shake 400ms linear;
 }
@@ -744,7 +841,10 @@ body.screen-shake .game-frame {
   .feature-strip,
   .mode-selector,
   .question-tools,
-  .mascot-row {
+  .mascot-row,
+  .profile-form,
+  .profile-header,
+  .badge-shelf {
     grid-template-columns: 1fr;
   }
 

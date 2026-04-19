@@ -1,4 +1,6 @@
 const STORAGE_KEY = "multiplication-sprint-best-score";
+const PROFILE_STORAGE_KEY = "multiplication-sprint-profiles";
+const ACTIVE_PROFILE_STORAGE_KEY = "multiplication-sprint-active-profile";
 const TOTAL_LEVELS = 10;
 const QUESTIONS_PER_LEVEL = 10;
 const BONUS_STREAK = 3;
@@ -6,6 +8,15 @@ const BONUS_POINTS = 12;
 const BONUS_TIME = 2;
 const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const MOBILE_PARTICLE_COUNT = window.innerWidth < 768 ? 10 : 18;
+
+const BADGES = {
+  first_win: { title: "Premier pas", description: "Valider un premier niveau" },
+  star_hunter: { title: "Chasseur d'etoiles", description: "Gagner 3 etoiles sur un niveau" },
+  perfect_level: { title: "Sans faute", description: "Finir un niveau a 100% de precision" },
+  expert_brain: { title: "Cerveau expert", description: "Valider un niveau en mode expert" },
+  duo_winner: { title: "Duel gagne", description: "Remporter une partie a 2 joueurs" },
+  hundred_points: { title: "Mega score", description: "Depasser 1000 points" }
+};
 
 const MODES = {
   kids: {
@@ -66,6 +77,13 @@ const elements = {
   duoModeButton: document.getElementById("duoModeButton"),
   voiceToggleButton: document.getElementById("voiceToggleButton"),
   speakButton: document.getElementById("speakButton"),
+  profileNameInput: document.getElementById("profileNameInput"),
+  saveProfileButton: document.getElementById("saveProfileButton"),
+  activeProfileName: document.getElementById("activeProfileName"),
+  badgeCountStart: document.getElementById("badgeCountStart"),
+  badgeShelfStart: document.getElementById("badgeShelfStart"),
+  badgeShelfCheckpoint: document.getElementById("badgeShelfCheckpoint"),
+  badgeShelfEnd: document.getElementById("badgeShelfEnd"),
   checkpointPrimaryButton: document.getElementById("checkpointPrimaryButton"),
   checkpointRetryButton: document.getElementById("checkpointRetryButton"),
   bestScoreStart: document.getElementById("bestScoreStart"),
@@ -138,11 +156,25 @@ const state = {
   playerScores: [0, 0],
   starsEarned: 0,
   levelStars: 0,
-  deferredInstallPrompt: null
+  deferredInstallPrompt: null,
+  profileName: "Champion",
+  profiles: readProfiles(),
+  activeProfileId: localStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY) || "champion",
+  unlockedBadges: [],
+  lastUnlockedBadges: [],
+  preferredVoice: null
 };
 
 function readBestScore() {
   return Number.parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10) || 0;
+}
+
+function readProfiles() {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
 }
 
 function saveBestScore(score) {
@@ -150,6 +182,89 @@ function saveBestScore(score) {
     state.bestScore = score;
     localStorage.setItem(STORAGE_KEY, String(score));
   }
+  persistProfiles();
+}
+
+function normalizeProfileId(name) {
+  return name.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 18) || "champion";
+}
+
+function ensureActiveProfile() {
+  const savedProfile = state.profiles[state.activeProfileId];
+  if (savedProfile) {
+    state.profileName = savedProfile.name;
+    state.unlockedBadges = savedProfile.badges || [];
+    state.bestScore = Math.max(state.bestScore, savedProfile.bestScore || 0);
+    return;
+  }
+  state.profiles[state.activeProfileId] = { name: "Champion", badges: [], bestScore: state.bestScore };
+  state.profileName = "Champion";
+  state.unlockedBadges = [];
+  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profiles));
+}
+
+function persistProfiles() {
+  const current = state.profiles[state.activeProfileId] || {};
+  state.profiles[state.activeProfileId] = {
+    ...current,
+    name: state.profileName,
+    badges: [...state.unlockedBadges],
+    bestScore: Math.max(current.bestScore || 0, state.bestScore)
+  };
+  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(state.profiles));
+  localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, state.activeProfileId);
+}
+
+function renderBadgeShelf(container, badgeIds, highlight = []) {
+  container.innerHTML = "";
+  if (!badgeIds.length) {
+    container.innerHTML = "<div class=\"badge-chip\"><strong>Aucun badge</strong><span>Continue a jouer pour debloquer des recompenses.</span></div>";
+    return;
+  }
+  badgeIds.forEach((badgeId) => {
+    const meta = BADGES[badgeId];
+    if (!meta) {
+      return;
+    }
+    const badge = document.createElement("article");
+    badge.className = "badge-chip";
+    if (highlight.includes(badgeId)) {
+      badge.classList.add("badge-chip-new");
+    }
+    badge.innerHTML = `<strong>${meta.title}</strong><span>${meta.description}</span>`;
+    container.appendChild(badge);
+  });
+}
+
+function updateProfileUI() {
+  elements.activeProfileName.textContent = state.profileName;
+  elements.profileNameInput.value = state.profileName === "Champion" ? "" : state.profileName;
+  elements.badgeCountStart.textContent = state.unlockedBadges.length;
+  renderBadgeShelf(elements.badgeShelfStart, state.unlockedBadges);
+  renderBadgeShelf(elements.badgeShelfEnd, state.unlockedBadges);
+}
+
+function saveProfileFromInput() {
+  const rawName = elements.profileNameInput.value.trim();
+  const nextName = rawName || "Champion";
+  state.activeProfileId = normalizeProfileId(nextName);
+  const existing = state.profiles[state.activeProfileId];
+  state.profileName = nextName;
+  state.unlockedBadges = existing?.badges || [];
+  state.bestScore = Math.max(readBestScore(), existing?.bestScore || 0);
+  persistProfiles();
+  updateBestScoreDisplays();
+  updateProfileUI();
+  setMascotSpeech(`Salut ${state.profileName} ! Ton profil est pret.`);
+}
+
+function unlockBadge(badgeId) {
+  if (state.unlockedBadges.includes(badgeId)) {
+    return;
+  }
+  state.unlockedBadges.push(badgeId);
+  state.lastUnlockedBadges.push(badgeId);
+  persistProfiles();
 }
 
 function getModeConfig() {
@@ -185,6 +300,19 @@ function setMascotSpeech(message) {
   }
 }
 
+function selectPreferredVoice() {
+  if (!("speechSynthesis" in window)) {
+    return;
+  }
+  const voices = window.speechSynthesis.getVoices();
+  const frenchVoices = voices.filter((voice) => voice.lang.toLowerCase().startsWith("fr"));
+  state.preferredVoice =
+    frenchVoices.find((voice) => /google|microsoft|hortense|denise|paul/i.test(voice.name)) ||
+    frenchVoices[0] ||
+    voices[0] ||
+    null;
+}
+
 function animateFloatingDecor() {
   if (!window.gsap || REDUCED_MOTION) {
     return;
@@ -208,7 +336,7 @@ function updateBestScoreDisplays() {
 }
 
 function updatePlayerPanel() {
-  elements.activePlayerLabel.textContent = state.sessionMode === "duo" ? `Joueur ${state.currentPlayer + 1}` : "Joueur 1";
+  elements.activePlayerLabel.textContent = state.sessionMode === "duo" ? `Joueur ${state.currentPlayer + 1}` : state.profileName;
   elements.playerOneScore.textContent = state.playerScores[0];
   elements.playerTwoScore.textContent = state.sessionMode === "duo" ? state.playerScores[1] : "-";
   elements.starsSummary.textContent = `${state.starsEarned}★`;
@@ -417,6 +545,9 @@ function speakQuestion() {
   const utterance = new SpeechSynthesisUtterance(`${state.currentQuestion.first} fois ${state.currentQuestion.second}`);
   utterance.lang = "fr-FR";
   utterance.rate = state.mode === "kids" ? 0.92 : 1;
+  if (state.preferredVoice) {
+    utterance.voice = state.preferredVoice;
+  }
   window.speechSynthesis.speak(utterance);
 }
 
@@ -623,6 +754,7 @@ function showCheckpoint() {
   renderStars(elements.checkpointStars, state.levelStars);
 
   if (state.levelPassed) {
+    unlockBadge("first_win");
     elements.checkpointEyebrow.textContent = "Niveau valide";
     elements.checkpointTitle.textContent = state.level === TOTAL_LEVELS ? "Bravo, tout est complete !" : "Bien joue !";
     elements.checkpointMessage.textContent = state.level === TOTAL_LEVELS
@@ -632,6 +764,15 @@ function showCheckpoint() {
     playSound("pass");
     createParticles("success");
     setMascotSpeech(`Excellent ! ${state.levelStars} etoile${state.levelStars > 1 ? "s" : ""} pour ce niveau.`);
+    if (state.levelStars === 3) {
+      unlockBadge("star_hunter");
+    }
+    if (levelAccuracy === 100) {
+      unlockBadge("perfect_level");
+    }
+    if (state.mode === "expert") {
+      unlockBadge("expert_brain");
+    }
   } else {
     elements.checkpointEyebrow.textContent = "Niveau a retenter";
     elements.checkpointTitle.textContent = "Tu peux faire mieux !";
@@ -650,6 +791,9 @@ function showCheckpoint() {
   } else {
     elements.checkpointWinner.textContent = `Tu cumules ${state.starsEarned} etoiles au total.`;
   }
+
+  renderBadgeShelf(elements.badgeShelfCheckpoint, state.lastUnlockedBadges, state.lastUnlockedBadges);
+  updateProfileUI();
 
   showScreen(elements.checkpointScreen);
   if (window.gsap && !REDUCED_MOTION) {
@@ -721,11 +865,18 @@ function endGame({ title, eyebrow, message }) {
     } else {
       const winner = state.playerScores[0] > state.playerScores[1] ? 1 : 2;
       elements.winnerMessage.textContent = `Victoire locale pour Joueur ${winner} !`;
+      unlockBadge("duo_winner");
     }
   } else {
-    elements.winnerMessage.textContent = `Tu termines avec ${state.starsEarned} etoiles cumulees.`;
+    elements.winnerMessage.textContent = `${state.profileName}, tu termines avec ${state.starsEarned} etoiles cumulees.`;
   }
 
+  if (state.score >= 1000) {
+    unlockBadge("hundred_points");
+  }
+
+  renderBadgeShelf(elements.badgeShelfEnd, state.unlockedBadges, state.lastUnlockedBadges);
+  updateProfileUI();
   showScreen(elements.endScreen);
   if (window.gsap && !REDUCED_MOTION) {
     gsap.fromTo(".end-card", { opacity: 0, y: 40, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: "back.out(1.4)" });
@@ -742,9 +893,11 @@ function startGame() {
   state.starsEarned = 0;
   state.currentPlayer = 0;
   state.gameOver = false;
+  state.lastUnlockedBadges = [];
   resetLevelProgress();
   captureLevelSnapshot();
   updateBestScoreDisplays();
+  updateProfileUI();
   showScreen(elements.gameScreen);
   beginQuestion();
 }
@@ -797,6 +950,13 @@ function bindEvents() {
   elements.duoModeButton.addEventListener("click", () => setSessionMode("duo"));
   elements.voiceToggleButton.addEventListener("click", () => setVoiceEnabled(!state.voiceEnabled));
   elements.speakButton.addEventListener("click", speakQuestion);
+  elements.saveProfileButton.addEventListener("click", saveProfileFromInput);
+  elements.profileNameInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      saveProfileFromInput();
+    }
+  });
   elements.checkpointPrimaryButton.addEventListener("click", () => {
     if (!state.levelPassed) {
       retryLevel();
@@ -816,10 +976,16 @@ function bindEvents() {
 }
 
 function init() {
+  ensureActiveProfile();
+  selectPreferredVoice();
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.onvoiceschanged = selectPreferredVoice;
+  }
   setMode("kids");
   setSessionMode("solo");
   setVoiceEnabled(true);
   updateBestScoreDisplays();
+  updateProfileUI();
   updateScoreboard();
   renderTimer();
   bindEvents();
