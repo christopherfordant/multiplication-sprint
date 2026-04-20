@@ -1,10 +1,10 @@
-const CACHE_NAME = "multiplication-sprint-v8-fantasy";
+const CACHE_NAME = "multiplication-sprint-v9-atlas";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=20260420c",
-  "./animations-enhanced.css?v=20260420c",
-  "./script.js?v=20260420c",
+  "./style.css?v=20260420d",
+  "./animations-enhanced.css?v=20260420d",
+  "./script.js?v=20260420d",
   "./manifest.webmanifest",
   "./favicon.svg",
   "./icon-192.svg",
