@@ -22,16 +22,16 @@ const BADGES = {
 };
 
 const MAP_LEVELS = [
-  { x: 11, y: 68, title: "Prairie des 2", description: "Les premiers pas du sentier enchante." },
-  { x: 19, y: 48, title: "Pont des etoiles", description: "Des multiplications simples sur le vieux pont." },
-  { x: 33, y: 24, title: "Colline des nuages", description: "Le chemin grimpe avec quelques revisions." },
-  { x: 43, y: 20, title: "Foret sucree", description: "Les tables se melangent dans la foret." },
-  { x: 47, y: 50, title: "Lac des lucioles", description: "Un niveau plus rythme au coeur du desert." },
-  { x: 56, y: 56, title: "Falaises d'or", description: "Le vent souffle, les calculs s'accelerent." },
-  { x: 72, y: 34, title: "Passage lunaire", description: "Le sentier devient plus technique." },
-  { x: 84, y: 23, title: "Tour du veilleur", description: "Les meilleures tables reviennent t'entrainer." },
-  { x: 79, y: 80, title: "Cour du boss", description: "Dernier camp avant le chateau." },
-  { x: 90, y: 17, title: "Chateau du boss", description: "Le boss final garde le chateau des multiplications.", boss: true }
+  { x: 12, y: 70, title: "Prairie des 2", description: "Les premiers calculs s'ouvrent dans une vallee tres douce.", biome: "prairie", landmark: "village" },
+  { x: 20, y: 52, title: "Moulin des etoiles", description: "Le vent du moulin porte des reponses faciles et rapides.", biome: "prairie", landmark: "moulin" },
+  { x: 34, y: 26, title: "Pont des lanternes", description: "Traverse la foret lumineuse avec quelques revisions sur le chemin.", biome: "forest", landmark: "pont" },
+  { x: 44, y: 22, title: "Bois des murmures", description: "Les tables se melangent entre arbres, lucioles et passerelles.", biome: "forest", landmark: "foret" },
+  { x: 48, y: 52, title: "Ruines dorees", description: "Le desert cache des pierres anciennes et un rythme plus rapide.", biome: "desert", landmark: "ruines" },
+  { x: 58, y: 57, title: "Camp du canyon", description: "Le soleil tape plus fort et les calculs deviennent plus nerveux.", biome: "desert", landmark: "camp" },
+  { x: 72, y: 35, title: "Falaises du veilleur", description: "Un passage aerien ou chaque bonne reponse fait gagner du terrain.", biome: "cliffs", landmark: "falaises" },
+  { x: 84, y: 24, title: "Tour d'azur", description: "Les meilleures tables reviennent pour preparer l'assaut final.", biome: "cliffs", landmark: "tour" },
+  { x: 79, y: 80, title: "Iles du dragon", description: "Dernier bivouac avant la forteresse. Le boss n'est plus loin.", biome: "isles", landmark: "iles" },
+  { x: 90, y: 17, title: "Chateau du boss", description: "La forteresse finale protege les tables les plus redoutables.", biome: "isles", landmark: "chateau", boss: true }
 ];
 
 const MODES = {
@@ -420,8 +420,15 @@ function getAccuracy(correct, attempts) {
 
 function setMascotSpeech(message) {
   elements.mascotSpeech.textContent = message;
+  elements.mascotName.textContent = "Nova";
   if (window.gsap && !REDUCED_MOTION) {
+    elements.mascotAvatar.dataset.state = "victory";
     gsap.fromTo(elements.mascotAvatar, { rotate: -3, y: 0 }, { rotate: 3, y: -4, duration: 0.14, yoyo: true, repeat: 1, ease: "power1.inOut" });
+    window.setTimeout(() => {
+      if (elements.mascotAvatar) {
+        elements.mascotAvatar.dataset.state = "idle";
+      }
+    }, 520);
   }
 }
 
@@ -434,6 +441,18 @@ function selectPreferredVoice() {
     frenchVoices[0] ||
     voices[0] ||
     null;
+}
+
+function setHeroState(stateName, scope = document) {
+  scope.querySelectorAll(".hero-sprite").forEach((sprite) => {
+    sprite.dataset.state = stateName;
+  });
+}
+
+function setMapHeroState(stateName) {
+  if (elements.mapMascot) {
+    elements.mapMascot.dataset.state = stateName;
+  }
 }
 
 function showScreen(screen) {
@@ -576,22 +595,43 @@ function renderStars(container, count) {
 
 function updateSelectedLevelCard() {
   const levelData = MAP_LEVELS[state.selectedLevel - 1];
-  elements.selectedLevelLabel.textContent = levelData.title;
-  elements.selectedLevelDescription.textContent = levelData.description;
+  const biomeNames = {
+    prairie: "Prairies",
+    forest: "Foret",
+    desert: "Desert",
+    cliffs: "Falaises",
+    isles: "Iles"
+  };
+  elements.selectedLevelLabel.textContent = `Niveau ${state.selectedLevel} · ${levelData.title}`;
+  elements.selectedLevelDescription.textContent = `${biomeNames[levelData.biome] || "Monde"} · ${levelData.description}`;
   elements.enterLevelButton.textContent = levelData.boss ? "Entrer dans le boss" : "Entrer dans le niveau";
   elements.enterLevelButton.disabled = state.selectedLevel > state.highestUnlockedLevel;
 }
 
 function positionMascotOnMap(instant = false) {
   const levelData = MAP_LEVELS[state.selectedLevel - 1];
-  const targetX = `calc(${levelData.x}% - 33px)`;
-  const targetY = `calc(${levelData.y}% - 33px)`;
+  const targetX = `calc(${levelData.x}% - 41px)`;
+  const targetY = `calc(${levelData.y}% - 56px)`;
   if (!window.gsap || REDUCED_MOTION || instant) {
     elements.mapMascot.style.left = targetX;
     elements.mapMascot.style.top = targetY;
+    setMapHeroState("idle");
+    elements.mapMascot.dataset.lastX = String(levelData.x);
     return;
   }
-  gsap.to(elements.mapMascot, { left: targetX, top: targetY, duration: 0.5, ease: "power2.out" });
+  setMapHeroState("walk");
+  const previousX = Number.parseFloat(elements.mapMascot.dataset.lastX || String(levelData.x));
+  const facing = levelData.x >= previousX ? 1 : -1;
+  elements.mapMascot.style.transform = `scaleX(${facing})`;
+  gsap.killTweensOf(elements.mapMascot);
+  gsap.timeline({
+    onComplete: () => {
+      setMapHeroState("idle");
+      elements.mapMascot.dataset.lastX = String(levelData.x);
+    }
+  })
+    .to(elements.mapMascot, { left: targetX, top: targetY, duration: 0.72, ease: "power1.inOut" }, 0)
+    .to(elements.mapMascot, { y: -8, duration: 0.16, repeat: 3, yoyo: true, ease: "sine.inOut" }, 0);
 }
 
 function selectMapLevel(level, instant = false) {
@@ -607,12 +647,17 @@ function renderMap() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "map-node";
+    button.classList.add(`node-${node.biome}`);
     if (level > state.highestUnlockedLevel) button.classList.add("locked");
     if (level === state.selectedLevel) button.classList.add("selected");
     if (node.boss) button.classList.add("boss-node");
     button.style.left = `calc(${node.x}% - 37px)`;
     button.style.top = `calc(${node.y}% - 37px)`;
-    button.innerHTML = `${node.boss ? "👑" : level}<span class="node-stars">${"★".repeat(state.levelStarsMap[index] || 0)}</span>`;
+    button.innerHTML = `
+      <span class="node-core">${level}</span>
+      <span class="node-label">${node.landmark}</span>
+      <span class="node-stars">${"★".repeat(state.levelStarsMap[index] || 0)}</span>
+    `;
     button.addEventListener("click", () => {
       if (level <= state.highestUnlockedLevel) {
         selectMapLevel(level);

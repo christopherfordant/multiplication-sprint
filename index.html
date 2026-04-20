@@ -67,8 +67,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css?v=20260420a">
-  <link rel="stylesheet" href="animations-enhanced.css?v=20260420a">
+  <link rel="stylesheet" href="style.css?v=20260420c">
+  <link rel="stylesheet" href="animations-enhanced.css?v=20260420c">
   
   <!-- Performance DNS Prefetch -->
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
@@ -110,6 +110,34 @@
             Regle ton aventure, visualise la progression des enfants et lance la carte du monde comme dans un jeu de plateforme.
           </p>
 
+          <div class="hero-stage">
+            <div class="hero-stage-copy">
+              <p class="selection-title">Monde de Jade</p>
+              <p class="tiny-text">Un royaume de calculs, de forets lumineuses, de ponts perdus et d'un grand chateau final a reconquerir.</p>
+              <div class="hero-stage-chips">
+                <span class="stage-chip">Biomes magiques</span>
+                <span class="stage-chip">Boss final</span>
+                <span class="stage-chip">Aventure mobile</span>
+              </div>
+            </div>
+            <div class="hero-stage-art" aria-hidden="true">
+              <div class="hero-stage-orb hero-stage-orb-left"></div>
+              <div class="hero-stage-orb hero-stage-orb-right"></div>
+              <div class="hero-sprite hero-stage-sprite" data-state="victory">
+                <span class="hero-shadow"></span>
+                <span class="hero-cape"></span>
+                <span class="hero-legs"></span>
+                <span class="hero-body"></span>
+                <span class="hero-arm hero-arm-left"></span>
+                <span class="hero-arm hero-arm-right"></span>
+                <span class="hero-head"></span>
+                <span class="hero-hair"></span>
+                <span class="hero-crown"></span>
+              </div>
+              <div class="hero-stage-pedestal"></div>
+            </div>
+          </div>
+
           <div class="hub-grid">
             <section class="hub-panel">
               <div class="panel-title-row">
@@ -127,7 +155,17 @@
               </div>
 
               <div class="hero-profile-card">
-                <div class="mini-mascot" aria-hidden="true"></div>
+                <div class="mini-mascot hero-sprite" data-state="idle" aria-hidden="true">
+                  <span class="hero-shadow"></span>
+                  <span class="hero-cape"></span>
+                  <span class="hero-legs"></span>
+                  <span class="hero-body"></span>
+                  <span class="hero-arm hero-arm-left"></span>
+                  <span class="hero-arm hero-arm-right"></span>
+                  <span class="hero-head"></span>
+                  <span class="hero-hair"></span>
+                  <span class="hero-crown"></span>
+                </div>
                 <div>
                   <span>Profil actif</span>
                   <strong id="activeProfileName">Champion</strong>
@@ -225,20 +263,33 @@
 
           <div class="world-map" id="worldMap">
             <div class="world-backdrop"></div>
-            <div class="continent continent-west" aria-hidden="true"></div>
-            <div class="continent continent-north" aria-hidden="true"></div>
-            <div class="continent continent-center" aria-hidden="true"></div>
-            <div class="continent continent-east" aria-hidden="true"></div>
-            <div class="continent continent-south" aria-hidden="true"></div>
-            <div class="zone-label zone-west">Prairies</div>
-            <div class="zone-label zone-north">Forets</div>
-            <div class="zone-label zone-center">Desert</div>
-            <div class="zone-label zone-east">Falaises</div>
-            <div class="zone-label zone-south">Iles du boss</div>
-            <div class="castle-silhouette" aria-hidden="true">
+            <div class="map-sun" aria-hidden="true"></div>
+            <div class="biome biome-prairie" aria-hidden="true">
+              <div class="biome-label">Prairies d'emeraude</div>
+              <div class="landmark-scene landmark-windmill"></div>
+            </div>
+            <div class="biome biome-forest" aria-hidden="true">
+              <div class="biome-label">Foret des lanternes</div>
+              <div class="landmark-scene landmark-bridge"></div>
+            </div>
+            <div class="biome biome-desert" aria-hidden="true">
+              <div class="biome-label">Dunes dorees</div>
+              <div class="landmark-scene landmark-ruins"></div>
+            </div>
+            <div class="biome biome-cliffs" aria-hidden="true">
+              <div class="biome-label">Falaises du veilleur</div>
+              <div class="landmark-scene landmark-tower"></div>
+            </div>
+            <div class="biome biome-isles" aria-hidden="true">
+              <div class="biome-label">Iles du dragon</div>
+              <div class="landmark-scene landmark-gate"></div>
+            </div>
+            <div class="castle-silhouette castle-fortress" aria-hidden="true">
               <div class="tower left"></div>
               <div class="tower right"></div>
               <div class="castle-main"></div>
+              <div class="castle-gate"></div>
+              <div class="castle-banner"></div>
               <div class="boss-orb"></div>
             </div>
             <div class="bridge bridge-one" aria-hidden="true"></div>
@@ -246,12 +297,16 @@
             <div class="bridge bridge-three" aria-hidden="true"></div>
             <div id="mapPath" class="map-path" aria-hidden="true"></div>
             <div id="mapNodes" class="map-nodes" aria-label="Carte des niveaux"></div>
-            <div id="mapMascot" class="map-mascot" aria-hidden="true">
-              <div class="map-mascot-face">
-                <span class="eye"></span>
-                <span class="eye"></span>
-                <span class="mouth"></span>
-              </div>
+            <div id="mapMascot" class="map-mascot hero-sprite" data-state="idle" aria-hidden="true">
+              <span class="hero-shadow"></span>
+              <span class="hero-cape"></span>
+              <span class="hero-legs"></span>
+              <span class="hero-body"></span>
+              <span class="hero-arm hero-arm-left"></span>
+              <span class="hero-arm hero-arm-right"></span>
+              <span class="hero-head"></span>
+              <span class="hero-hair"></span>
+              <span class="hero-crown"></span>
             </div>
           </div>
 
@@ -308,15 +363,19 @@
         <div class="question-card" id="questionCard">
           <div class="question-glow" aria-hidden="true"></div>
           <div class="mascot-row">
-            <div id="mascotAvatar" class="mascot-avatar" aria-hidden="true">
-              <div class="mascot-face">
-                <span class="eye"></span>
-                <span class="eye"></span>
-                <span class="mouth"></span>
-              </div>
+            <div id="mascotAvatar" class="mascot-avatar hero-sprite" data-state="idle" aria-hidden="true">
+              <span class="hero-shadow"></span>
+              <span class="hero-cape"></span>
+              <span class="hero-legs"></span>
+              <span class="hero-body"></span>
+              <span class="hero-arm hero-arm-left"></span>
+              <span class="hero-arm hero-arm-right"></span>
+              <span class="hero-head"></span>
+              <span class="hero-hair"></span>
+              <span class="hero-crown"></span>
             </div>
             <div class="mascot-bubble">
-              <strong id="mascotLabel">Milo le coach</strong>
+              <strong id="mascotLabel">Nova la guide</strong>
               <p id="mascotSpeech">Je suis pret. Clique sur la bonne reponse !</p>
             </div>
           </div>
@@ -462,6 +521,6 @@
     });
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
-  <script src="script.js?v=20260420a" defer></script>
+  <script src="script.js?v=20260420c" defer></script>
 </body>
 </html>

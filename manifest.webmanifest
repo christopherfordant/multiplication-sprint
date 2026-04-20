@@ -1,11 +1,11 @@
 {
   "name": "Multiplication Sprint",
   "short_name": "Multiplication",
-  "description": "Jeu de multiplications avec chrono, niveaux, bonus et meilleur score.",
+  "description": "Jeu d'aventure cartoon fantasy pour reviser les multiplications avec carte du monde, heros, niveaux et boss final.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#79d0ff",
-  "theme_color": "#1f6fff",
+  "background_color": "#18347d",
+  "theme_color": "#3c91ff",
   "lang": "fr",
   "icons": [
     {
