@@ -381,6 +381,8 @@ function saveProfileFromInput() {
   updateBestScoreDisplays();
   updateProfileUI();
   renderMap();
+  selectMapLevel(Math.min(state.highestUnlockedLevel, state.selectedLevel), true);
+  elements.profileProgressText.textContent = `Profil sauvegarde pour ${state.profileName}`;
   setMascotSpeech(`Salut ${state.profileName} ! La carte est prete pour toi.`);
 }
 
@@ -464,13 +466,15 @@ function showScreen(screen) {
       );
     }
   }
+
+  window.scrollTo({ top: 0, behavior: REDUCED_MOTION ? "auto" : "smooth" });
 }
 
 function updateBestScoreDisplays() {
-  elements.bestScoreStart.textContent = state.bestScore;
-  elements.bestScoreGame.textContent = state.bestScore;
-  elements.bestScoreEnd.textContent = state.bestScore;
-  elements.mapBestScoreDisplay.textContent = state.bestScore;
+  if (elements.bestScoreStart) elements.bestScoreStart.textContent = state.bestScore;
+  if (elements.bestScoreGame) elements.bestScoreGame.textContent = state.bestScore;
+  if (elements.bestScoreEnd) elements.bestScoreEnd.textContent = state.bestScore;
+  if (elements.mapBestScoreDisplay) elements.mapBestScoreDisplay.textContent = state.bestScore;
 }
 
 function setMode(mode) {
@@ -1094,6 +1098,22 @@ function returnToMapFromCheckpoint() {
   openMap();
 }
 
+function retryCurrentLevelFromCheckpoint() {
+  restoreLevelSnapshot();
+  state.gameOver = false;
+  state.questionIndex = 0;
+  state.levelScore = 0;
+  state.levelCorrectAnswers = 0;
+  state.levelAttempts = 0;
+  state.streak = 0;
+  state.levelStars = 0;
+  state.timeLimit = getModeConfig().baseTime;
+  state.lastUnlockedBadges = [];
+  state.playerScores = [...(state.levelStartSnapshot?.playerScores || state.playerScores)];
+  updateScoreboard();
+  beginLevelFromMap();
+}
+
 function restartAdventure() {
   state.level = 1;
   state.selectedLevel = 1;
@@ -1130,7 +1150,7 @@ function runButtonAction(actionId) {
     speakButton: speakQuestion,
     saveProfileButton: saveProfileFromInput,
     checkpointPrimaryButton: returnToMapFromCheckpoint,
-    checkpointRetryButton: beginLevelFromMap
+    checkpointRetryButton: retryCurrentLevelFromCheckpoint
   };
   const action = actions[actionId];
   if (action) {
@@ -1162,8 +1182,13 @@ function setupInstallPrompt() {
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     state.deferredInstallPrompt = event;
-    elements.installButton.classList.remove("hidden");
+    if (elements.installButton) {
+      elements.installButton.classList.remove("hidden");
+    }
   });
+  if (!elements.installButton) {
+    return;
+  }
   elements.installButton.addEventListener("click", async () => {
     if (!state.deferredInstallPrompt) return;
     state.deferredInstallPrompt.prompt();
@@ -1183,29 +1208,29 @@ function registerServiceWorker() {
 
 function runLoadingIntro() {
   const hideLoading = () => {
-    elements.loadingScreen.classList.add("loading-hidden");
+    if (elements.loadingScreen) {
+      elements.loadingScreen.classList.add("loading-hidden");
+    }
   };
 
   window.setTimeout(hideLoading, 1800);
 
   if (!window.gsap || REDUCED_MOTION) {
-    elements.loadingBar.style.width = "100%";
+    if (elements.loadingBar) {
+      elements.loadingBar.style.width = "100%";
+    }
     window.setTimeout(hideLoading, 500);
     return;
   }
 
-  gsap.timeline({
-    onComplete: hideLoading
-  })
+  gsap.timeline({ onComplete: hideLoading })
     .to(elements.loadingBar, { width: "100%", duration: 0.9, ease: "power2.inOut" })
     .to(".loading-stars span", { y: -12, duration: 0.16, stagger: 0.06, repeat: 2, yoyo: true }, "<")
     .to(elements.loadingScreen, { opacity: 0, duration: 0.25, ease: "power2.out" });
 }
 
 function bindEvents() {
-  console.log("📌 Binding events pour tous les boutons...");
-  
-  [
+  const knownIds = [
     "mapNavHubButton",
     "mapNavStatsButton",
     "mapNavRewardsButton",
@@ -1223,56 +1248,55 @@ function bindEvents() {
     "saveProfileButton",
     "checkpointPrimaryButton",
     "checkpointRetryButton"
-  ].forEach((id) => {
-    const el = elements[id];
-    if (!el) {
-      console.warn(`⚠️ Élément manquant: ${id}`);
-    }
-    bindClick(el, id);
+  ];
+
+
+  knownIds.forEach((id) => {
+    bindClick(elements[id], id);
   });
 
-  elements.profileNameInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      saveProfileFromInput();
+  if (elements.profileNameInput) {
+    elements.profileNameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        saveProfileFromInput();
+      }
+    });
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (!elements.gameScreen.classList.contains("screen-active")) {
+      return;
+    }
+
+    const optionIndex = Number(event.key) - 1;
+    if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex > 4) {
+      return;
+    }
+
+    const button = elements.answerGrid.querySelectorAll(".answer-option")[optionIndex];
+    if (button && !button.disabled) {
+      button.click();
     }
   });
 
   document.addEventListener("click", (event) => {
-    const button = event.target.closest("button[id]");
+    const button = event.target.closest("button[data-action], button[id]");
     if (!button) {
       return;
     }
-    const knownIds = [
-      "mapNavHubButton",
-      "mapNavStatsButton",
-      "mapNavRewardsButton",
-      "openMapButton",
-      "backToHubButton",
-      "enterLevelButton",
-      "returnToMapButton",
-      "restartButton",
-      "kidsModeButton",
-      "expertModeButton",
-      "soloModeButton",
-      "duoModeButton",
-      "voiceToggleButton",
-      "speakButton",
-      "saveProfileButton",
-      "checkpointPrimaryButton",
-      "checkpointRetryButton"
-    ];
-    if (knownIds.includes(button.id) && !button.dataset.codexHandled) {
-      console.log(`🔘 Bouton cliqué: ${button.id}`);
-      button.dataset.codexHandled = "true";
-      window.setTimeout(() => {
-        delete button.dataset.codexHandled;
-      }, 0);
-      runButtonAction(button.id);
+
+    const actionId = button.dataset.action || button.id;
+    if (!knownIds.includes(actionId) || button.dataset.codexHandled) {
+      return;
     }
+
+    button.dataset.codexHandled = "true";
+    window.setTimeout(() => {
+      delete button.dataset.codexHandled;
+    }, 0);
+    runButtonAction(actionId);
   });
-  
-  console.log("✅ Events bindés avec succès");
 }
 
 function init() {
@@ -1305,6 +1329,7 @@ function init() {
   updateScoreboard();
   renderTimer();
   
+  window.msButton = runButtonAction;
   console.log("🔗 Binding des événements...");
   bindEvents();
   
@@ -1320,4 +1345,47 @@ function init() {
   console.log("✅ Application démarrée avec succès!");
 }
 
-init();
+function bootApp() {
+  if (window.__appBooted) {
+    return;
+  }
+
+  window.__appBooted = true;
+
+  try {
+    ensureActiveProfile();
+    selectPreferredVoice();
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.onvoiceschanged = selectPreferredVoice;
+    }
+
+    setMode("kids");
+    setSessionMode("solo");
+    setVoiceEnabled(true);
+
+    updateBestScoreDisplays();
+    updateProfileUI();
+    renderMap();
+    selectMapLevel(Math.min(state.selectedLevel, state.highestUnlockedLevel), true);
+    positionMascotOnMap(true);
+    updateScoreboard();
+    renderTimer();
+
+    window.msButton = runButtonAction;
+    bindEvents();
+    animateMapAmbient();
+    setupInstallPrompt();
+    registerServiceWorker();
+    runLoadingIntro();
+    showScreen(elements.startScreen);
+    window.__appInitialized = true;
+  } catch (error) {
+    console.error("Multiplication Sprint init failed:", error);
+    if (elements.loadingScreen) {
+      elements.loadingScreen.classList.add("loading-hidden");
+    }
+    showScreen(elements.startScreen);
+  }
+}
+
+bootApp();

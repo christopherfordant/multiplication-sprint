@@ -67,8 +67,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css?v=20260419b">
-  <link rel="stylesheet" href="animations-enhanced.css?v=20260419b">
+  <link rel="stylesheet" href="style.css?v=20260420a">
+  <link rel="stylesheet" href="animations-enhanced.css?v=20260420a">
   
   <!-- Performance DNS Prefetch -->
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
@@ -123,7 +123,7 @@
               <div class="profile-form">
                 <label for="profileNameInput" class="sr-only">Prenom du profil</label>
                 <input id="profileNameInput" class="profile-input" type="text" maxlength="18" placeholder="Entre un prenom">
-                <button id="saveProfileButton" class="ghost-button" type="button">Sauver</button>
+                <button id="saveProfileButton" data-action="saveProfileButton" class="ghost-button" type="button">Sauver</button>
               </div>
 
               <div class="hero-profile-card">
@@ -144,11 +144,11 @@
               <div class="selection-block">
                 <p class="selection-subtitle">Difficulte</p>
                 <div class="mode-selector" role="radiogroup" aria-label="Choix du mode de jeu">
-                  <button id="kidsModeButton" class="mode-card mode-card-active" type="button" role="radio" aria-checked="true">
+                  <button id="kidsModeButton" data-action="kidsModeButton" class="mode-card mode-card-active" type="button" role="radio" aria-checked="true">
                     <strong>Mode enfant</strong>
                     <span>Plus de temps et seuil plus doux</span>
                   </button>
-                  <button id="expertModeButton" class="mode-card" type="button" role="radio" aria-checked="false">
+                  <button id="expertModeButton" data-action="expertModeButton" class="mode-card" type="button" role="radio" aria-checked="false">
                     <strong>Mode expert</strong>
                     <span>Chrono plus nerveux et boss plus rude</span>
                   </button>
@@ -158,11 +158,11 @@
               <div class="selection-block">
                 <p class="selection-subtitle">Session</p>
                 <div class="mode-selector" role="radiogroup" aria-label="Nombre de joueurs">
-                  <button id="soloModeButton" class="mode-card mode-card-active" type="button" role="radio" aria-checked="true">
+                  <button id="soloModeButton" data-action="soloModeButton" class="mode-card mode-card-active" type="button" role="radio" aria-checked="true">
                     <strong>Solo</strong>
                     <span>Une aventure classique avec mascotte</span>
                   </button>
-                  <button id="duoModeButton" class="mode-card" type="button" role="radio" aria-checked="false">
+                  <button id="duoModeButton" data-action="duoModeButton" class="mode-card" type="button" role="radio" aria-checked="false">
                     <strong>2 joueurs local</strong>
                     <span>Alternance des tours sur la carte</span>
                   </button>
@@ -172,7 +172,7 @@
               <div class="feature-strip">
                 <div class="toggle-chip">
                   <span>Lecture vocale</span>
-                  <button id="voiceToggleButton" class="chip-button chip-button-active" type="button" aria-pressed="true">Activee</button>
+                  <button id="voiceToggleButton" data-action="voiceToggleButton" class="chip-button chip-button-active" type="button" aria-pressed="true">Activee</button>
                 </div>
                 <div class="toggle-chip mascot-chip">
                   <span>Mascotte</span>
@@ -180,7 +180,7 @@
                 </div>
               </div>
 
-              <button id="openMapButton" class="primary-button" type="button">Entrer sur la carte</button>
+              <button id="openMapButton" data-action="openMapButton" class="primary-button" type="button">Entrer sur la carte</button>
             </section>
           </div>
 
@@ -195,15 +195,20 @@
               <div id="rewardCollection" class="reward-grid"></div>
             </section>
           </div>
+
+          <div class="best-score-card">
+            <span>Meilleur score</span>
+            <strong id="bestScoreStart">0</strong>
+          </div>
         </div>
       </section>
 
       <section id="mapScreen" class="screen" aria-labelledby="mapTitle">
         <div class="map-screen-shell">
           <div class="map-topnav">
-            <button id="mapNavHubButton" class="ghost-button" type="button">Accueil</button>
-            <button id="mapNavStatsButton" class="ghost-button" type="button">Stats parent</button>
-            <button id="mapNavRewardsButton" class="ghost-button" type="button">Recompenses</button>
+            <button id="mapNavHubButton" data-action="mapNavHubButton" class="ghost-button" type="button">Accueil</button>
+            <button id="mapNavStatsButton" data-action="mapNavStatsButton" class="ghost-button" type="button">Stats parent</button>
+            <button id="mapNavRewardsButton" data-action="mapNavRewardsButton" class="ghost-button" type="button">Recompenses</button>
           </div>
 
           <div class="map-header">
@@ -257,8 +262,8 @@
               <p id="selectedLevelDescription" class="tiny-text">Les premiers calculs du sentier enchanté.</p>
             </div>
             <div class="map-actions">
-              <button id="backToHubButton" class="ghost-button" type="button">Retour accueil</button>
-              <button id="enterLevelButton" class="primary-button" type="button">Entrer dans le niveau</button>
+              <button id="backToHubButton" data-action="backToHubButton" class="ghost-button" type="button">Retour accueil</button>
+              <button id="enterLevelButton" data-action="enterLevelButton" class="primary-button" type="button">Entrer dans le niveau</button>
             </div>
           </div>
         </div>
@@ -318,7 +323,7 @@
 
           <div class="question-tools">
             <p class="question-caption" id="questionBadge">Clique sur la bonne reponse</p>
-            <button id="speakButton" class="ghost-button speak-button" type="button">Lire la question</button>
+            <button id="speakButton" data-action="speakButton" class="ghost-button speak-button" type="button">Lire la question</button>
           </div>
           <h2 id="questionText" class="question-text">2 x 3</h2>
 
@@ -386,8 +391,8 @@
           <div id="badgeShelfCheckpoint" class="badge-shelf" aria-label="Nouveaux badges"></div>
 
           <div class="checkpoint-actions">
-            <button id="checkpointPrimaryButton" class="primary-button" type="button">Retour a la carte</button>
-            <button id="checkpointRetryButton" class="ghost-button" type="button">Retenter le niveau</button>
+            <button id="checkpointPrimaryButton" data-action="checkpointPrimaryButton" class="primary-button" type="button">Retour a la carte</button>
+            <button id="checkpointRetryButton" data-action="checkpointRetryButton" class="ghost-button" type="button">Retenter le niveau</button>
           </div>
         </div>
       </section>
@@ -429,8 +434,8 @@
           <div id="badgeShelfEnd" class="badge-shelf" aria-label="Badges du profil"></div>
 
           <div class="checkpoint-actions">
-            <button id="returnToMapButton" class="ghost-button" type="button">Retour a la carte</button>
-            <button id="restartButton" class="primary-button" type="button">Rejouer depuis le debut</button>
+            <button id="returnToMapButton" data-action="returnToMapButton" class="ghost-button" type="button">Retour a la carte</button>
+            <button id="restartButton" data-action="restartButton" class="primary-button" type="button">Rejouer depuis le debut</button>
           </div>
         </div>
       </section>
@@ -448,16 +453,15 @@
     window.addEventListener("load", function () {
       window.setTimeout(function () {
         if (!window.__appInitialized) {
-          var script = document.createElement("script");
-          script.src = "script.js?v=20260419b&retry=1";
-          document.body.appendChild(script);
+          var loading = document.getElementById("loadingScreen");
+          if (loading) {
+            loading.classList.add("loading-hidden");
+          }
         }
       }, 1200);
     });
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
-  <script src="api-sync.js?v=20260419b" defer></script>
-  <script src="checkpoint-animations.js?v=20260419b" defer></script>
-  <script src="script.js?v=20260419b" defer></script>
+  <script src="script.js?v=20260420a" defer></script>
 </body>
 </html>

@@ -1,10 +1,12 @@
-const CACHE_NAME = "multiplication-sprint-v6-map";
+const CACHE_NAME = "multiplication-sprint-v7-audit";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css",
-  "./script.js",
+  "./style.css?v=20260420a",
+  "./animations-enhanced.css?v=20260420a",
+  "./script.js?v=20260420a",
   "./manifest.webmanifest",
+  "./favicon.svg",
   "./icon-192.svg",
   "./icon-512.svg"
 ];
