@@ -1,11 +1,13 @@
-const CACHE_NAME = "multiplication-sprint-v10-three-map";
+const CACHE_NAME = "multiplication-sprint-v12-premium-isometric-map";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=20260421a",
+  "./style.css?v=20260421d",
   "./animations-enhanced.css?v=20260421a",
-  "./script.js?v=20260421b",
-  "./map-scene.js?v=20260421b",
+  "./script.js?v=20260421d",
+  "./map-scene.js?v=20260421d",
+  "./assets/world/world-map-premium-v1.png",
+  "./assets/characters/hero-mascot-premium-v2.png",
   "./node_modules/three/build/three.module.js",
   "./manifest.webmanifest",
   "./favicon.svg",

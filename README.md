@@ -309,3 +309,9 @@ Publish Directory: .
 ## Remarque
 
 Le bouton d'installation apparaît seulement si le navigateur déclenche l'événement PWA `beforeinstallprompt`.
+## Carte premium v6
+
+- carte du monde premium isometrique basee sur un asset illustre local
+- couche d'ambiance Three.js pour nuages, lueurs, focus du niveau et profondeur
+- assets locaux ajoutes dans `assets/world` et `assets/characters`
+- service worker mis a jour pour invalider le cache et embarquer les nouveaux assets

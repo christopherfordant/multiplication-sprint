@@ -22,16 +22,16 @@ const BADGES = {
 };
 
 const MAP_LEVELS = [
-  { x: 12, y: 70, title: "Prairie des 2", description: "Les premiers calculs s'ouvrent dans une vallee tres douce.", biome: "prairie", landmark: "village" },
-  { x: 20, y: 52, title: "Moulin des etoiles", description: "Le vent du moulin porte des reponses faciles et rapides.", biome: "prairie", landmark: "moulin" },
-  { x: 34, y: 26, title: "Pont des lanternes", description: "Traverse la foret lumineuse avec quelques revisions sur le chemin.", biome: "forest", landmark: "pont" },
-  { x: 44, y: 22, title: "Bois des murmures", description: "Les tables se melangent entre arbres, lucioles et passerelles.", biome: "forest", landmark: "foret" },
-  { x: 48, y: 52, title: "Ruines dorees", description: "Le desert cache des pierres anciennes et un rythme plus rapide.", biome: "desert", landmark: "ruines" },
-  { x: 58, y: 57, title: "Camp du canyon", description: "Le soleil tape plus fort et les calculs deviennent plus nerveux.", biome: "desert", landmark: "camp" },
-  { x: 72, y: 35, title: "Falaises du veilleur", description: "Un passage aerien ou chaque bonne reponse fait gagner du terrain.", biome: "cliffs", landmark: "falaises" },
-  { x: 84, y: 24, title: "Tour d'azur", description: "Les meilleures tables reviennent pour preparer l'assaut final.", biome: "cliffs", landmark: "tour" },
-  { x: 79, y: 80, title: "Iles du dragon", description: "Dernier bivouac avant la forteresse. Le boss n'est plus loin.", biome: "isles", landmark: "iles" },
-  { x: 90, y: 17, title: "Chateau du boss", description: "La forteresse finale protege les tables les plus redoutables.", biome: "isles", landmark: "chateau", boss: true }
+  { x: 15, y: 71, title: "Prairie des 2", description: "Le premier sentier serpente entre les maisons, les ponts et les rivieres lumineuses.", biome: "prairie", landmark: "village" },
+  { x: 28, y: 64, title: "Moulin des etoiles", description: "Le vent du moulin aide a memoriser les premieres tables.", biome: "prairie", landmark: "moulin" },
+  { x: 21, y: 45, title: "Pont des lanternes", description: "Les ponts de pierre mènent vers une foret calme pleine de revisions utiles.", biome: "forest", landmark: "pont" },
+  { x: 36, y: 37, title: "Bois des murmures", description: "Les arbres magiques melangent vitesse, attention et questions de transition.", biome: "forest", landmark: "foret" },
+  { x: 45, y: 55, title: "Ruines dorees", description: "Le desert dore cache des passages anciens et des multiplications plus nerveuses.", biome: "desert", landmark: "ruines" },
+  { x: 60, y: 43, title: "Camp du canyon", description: "Le soleil tape fort et le chemin se resserre avant les terres de pierre.", biome: "desert", landmark: "camp" },
+  { x: 49, y: 25, title: "Falaises du veilleur", description: "Une citadelle claire domine les cascades et reveille les niveaux precedents.", biome: "cliffs", landmark: "falaises" },
+  { x: 77, y: 66, title: "Tour de braise", description: "Les iles de lave demandent plus de sang-froid et une vraie precision.", biome: "cliffs", landmark: "tour" },
+  { x: 84, y: 48, title: "Iles du dragon", description: "Le chemin se resserre entre les volcans avant la forteresse finale.", biome: "isles", landmark: "iles" },
+  { x: 85, y: 28, title: "Chateau du boss", description: "La forteresse du boss garde les tables les plus coriaces du royaume.", biome: "isles", landmark: "chateau", boss: true }
 ];
 
 const MODES = {
@@ -205,7 +205,8 @@ const state = {
   preferredVoice: null,
   highestUnlockedLevel: 1,
   levelStarsMap: Array(TOTAL_LEVELS).fill(0),
-  mapScene3D: null
+  mapScene3D: null,
+  mapSceneLoader: null
 };
 
 function readBestScore() {
@@ -458,12 +459,29 @@ function setMapHeroState(stateName) {
   }
 }
 
-function ensureMapScene3D() {
+async function loadMapSceneFactory() {
+  if (window.MultiplicationSprintMapScene?.createMapScene) {
+    return window.MultiplicationSprintMapScene.createMapScene;
+  }
+
+  if (!state.mapSceneLoader) {
+    state.mapSceneLoader = import(`./map-scene.js?v=20260421d`)
+      .then(() => window.MultiplicationSprintMapScene?.createMapScene || null)
+      .catch((error) => {
+        console.error("Map scene module failed to load:", error);
+        return null;
+      });
+  }
+
+  return state.mapSceneLoader;
+}
+
+async function ensureMapScene3D() {
   if (!elements.mapSceneMount || !elements.worldMap) {
     return;
   }
 
-  const factory = window.MultiplicationSprintMapScene?.createMapScene;
+  const factory = await loadMapSceneFactory();
   if (!factory) {
     return;
   }
@@ -476,6 +494,23 @@ function ensureMapScene3D() {
   state.mapScene3D.setUnlockedLevel(state.highestUnlockedLevel);
   state.mapScene3D.setSelectedLevel(state.selectedLevel);
   state.mapScene3D.resize?.();
+}
+
+function hydrateMapScene3D() {
+  if (!elements.mapScreen.classList.contains("screen-active")) {
+    return;
+  }
+
+  ensureMapScene3D().then(() => {
+    window.requestAnimationFrame(() => {
+      state.mapScene3D?.resize?.();
+      window.setTimeout(() => {
+        state.mapScene3D?.resize?.();
+      }, 120);
+    });
+  });
+
+  elements.worldMap.classList.add("webgl-enhanced");
 }
 
 function showScreen(screen) {
@@ -690,11 +725,42 @@ function renderMap() {
     });
     elements.mapNodes.appendChild(button);
   });
+  renderMapPath();
   elements.mapProgressDisplay.textContent = `${state.highestUnlockedLevel}/10`;
   elements.mapStarsDisplay.textContent = state.levelStarsMap.reduce((sum, value) => sum + value, 0);
   state.mapScene3D?.setUnlockedLevel(state.highestUnlockedLevel);
   state.mapScene3D?.setSelectedLevel(state.selectedLevel);
   updateSelectedLevelCard();
+}
+
+function renderMapPath() {
+  const pathHost = document.getElementById("mapPath");
+  if (!pathHost) {
+    return;
+  }
+
+  const points = MAP_LEVELS.map(({ x, y }) => ({ x, y }));
+  const d = points.map((point, index) => {
+    if (index === 0) {
+      return `M ${point.x} ${point.y}`;
+    }
+
+    const previous = points[index - 1];
+    const controlX = (previous.x + point.x) / 2;
+    const controlY = previous.y < point.y
+      ? Math.max(previous.y, point.y) - 3
+      : Math.min(previous.y, point.y) + 3;
+
+    return `Q ${controlX} ${controlY} ${point.x} ${point.y}`;
+  }).join(" ");
+
+  pathHost.innerHTML = `
+    <svg class="map-path-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <path class="map-path-shadow" d="${d}" pathLength="100"></path>
+      <path class="map-path-main" d="${d}" pathLength="100"></path>
+      <path class="map-path-dash" d="${d}" pathLength="100"></path>
+    </svg>
+  `;
 }
 
 function generateQuestion() {
@@ -1154,9 +1220,9 @@ function openMap() {
   updateBestScoreDisplays();
   updateProfileUI();
   renderMap();
-  ensureMapScene3D();
-  positionMascotOnMap(true);
   showScreen(elements.mapScreen);
+  hydrateMapScene3D();
+  positionMascotOnMap(true);
 }
 
 function returnToMapFromCheckpoint() {
