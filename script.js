@@ -119,6 +119,8 @@ const elements = {
   mapProgressDisplay: document.getElementById("mapProgressDisplay"),
   mapStarsDisplay: document.getElementById("mapStarsDisplay"),
   mapBestScoreDisplay: document.getElementById("mapBestScoreDisplay"),
+  mapSceneMount: document.getElementById("mapSceneMount"),
+  worldMap: document.getElementById("worldMap"),
   mapNodes: document.getElementById("mapNodes"),
   mapMascot: document.getElementById("mapMascot"),
   selectedLevelLabel: document.getElementById("selectedLevelLabel"),
@@ -202,7 +204,8 @@ const state = {
   lastUnlockedBadges: [],
   preferredVoice: null,
   highestUnlockedLevel: 1,
-  levelStarsMap: Array(TOTAL_LEVELS).fill(0)
+  levelStarsMap: Array(TOTAL_LEVELS).fill(0),
+  mapScene3D: null
 };
 
 function readBestScore() {
@@ -455,6 +458,26 @@ function setMapHeroState(stateName) {
   }
 }
 
+function ensureMapScene3D() {
+  if (!elements.mapSceneMount || !elements.worldMap) {
+    return;
+  }
+
+  const factory = window.MultiplicationSprintMapScene?.createMapScene;
+  if (!factory) {
+    return;
+  }
+
+  if (!state.mapScene3D) {
+    state.mapScene3D = factory(elements.mapSceneMount);
+    elements.worldMap.classList.add("webgl-enhanced");
+  }
+
+  state.mapScene3D.setUnlockedLevel(state.highestUnlockedLevel);
+  state.mapScene3D.setSelectedLevel(state.selectedLevel);
+  state.mapScene3D.resize?.();
+}
+
 function showScreen(screen) {
   const screens = [elements.startScreen, elements.mapScreen, elements.gameScreen, elements.checkpointScreen, elements.endScreen];
   
@@ -628,6 +651,7 @@ function positionMascotOnMap(instant = false) {
     onComplete: () => {
       setMapHeroState("idle");
       elements.mapMascot.dataset.lastX = String(levelData.x);
+      state.mapScene3D?.setSelectedLevel(state.selectedLevel);
     }
   })
     .to(elements.mapMascot, { left: targetX, top: targetY, duration: 0.72, ease: "power1.inOut" }, 0)
@@ -636,6 +660,7 @@ function positionMascotOnMap(instant = false) {
 
 function selectMapLevel(level, instant = false) {
   state.selectedLevel = level;
+  state.mapScene3D?.setSelectedLevel(level);
   renderMap();
   positionMascotOnMap(instant);
 }
@@ -667,6 +692,8 @@ function renderMap() {
   });
   elements.mapProgressDisplay.textContent = `${state.highestUnlockedLevel}/10`;
   elements.mapStarsDisplay.textContent = state.levelStarsMap.reduce((sum, value) => sum + value, 0);
+  state.mapScene3D?.setUnlockedLevel(state.highestUnlockedLevel);
+  state.mapScene3D?.setSelectedLevel(state.selectedLevel);
   updateSelectedLevelCard();
 }
 
@@ -1127,6 +1154,7 @@ function openMap() {
   updateBestScoreDisplays();
   updateProfileUI();
   renderMap();
+  ensureMapScene3D();
   positionMascotOnMap(true);
   showScreen(elements.mapScreen);
 }

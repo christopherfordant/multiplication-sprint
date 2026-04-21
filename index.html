@@ -67,8 +67,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css?v=20260420d">
-  <link rel="stylesheet" href="animations-enhanced.css?v=20260420d">
+  <link rel="stylesheet" href="style.css?v=20260421a">
+  <link rel="stylesheet" href="animations-enhanced.css?v=20260421a">
   
   <!-- Performance DNS Prefetch -->
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
@@ -262,6 +262,7 @@
           </div>
 
           <div class="world-map" id="worldMap">
+            <div id="mapSceneMount" class="map-scene-mount" aria-hidden="true"></div>
             <div class="world-backdrop"></div>
             <div class="map-sun" aria-hidden="true"></div>
             <div class="atlas-corner atlas-corner-left" aria-hidden="true"></div>
@@ -526,6 +527,7 @@
     });
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
-  <script src="script.js?v=20260420d" defer></script>
+  <script type="module" src="map-scene.js?v=20260421b"></script>
+  <script src="script.js?v=20260421b" defer></script>
 </body>
 </html>
