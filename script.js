@@ -206,7 +206,10 @@ const state = {
   highestUnlockedLevel: 1,
   levelStarsMap: Array(TOTAL_LEVELS).fill(0),
   mapScene3D: null,
-  mapSceneLoader: null
+  mapSceneLoader: null,
+  dialogueQueue: [],
+  isTyping: false,
+  levelFailuresMap: {}
 };
 
 function readBestScore() {
@@ -338,6 +341,13 @@ function renderRewardCollection() {
   });
 }
 
+function getTimeGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Bon matin !";
+  if (hour < 18) return "Bon après-midi !";
+  return "Bonsoir !";
+}
+
 function renderParentDashboard() {
   elements.parentDashboard.innerHTML = "";
   const ids = Object.keys(state.profiles);
@@ -378,16 +388,31 @@ function updateProfileUI() {
 }
 
 function saveProfileFromInput() {
+  console.log("💾 saveProfileFromInput: Tentative de sauvegarde...");
   const rawName = elements.profileNameInput.value.trim();
   const nextName = rawName || "Champion";
   const nextId = normalizeProfileId(nextName);
+  
+  const isNewProfile = !state.profiles[nextId];
+  
+  // Mise à jour de l'état local avant le switch
+  state.profileName = nextName;
+  state.activeProfileId = nextId;
+
   switchToProfile(nextId, nextName);
+  
+  if (isNewProfile) {
+    state.mapScene3D?.playWaveAnimation?.();
+  }
+
   updateBestScoreDisplays();
   updateProfileUI();
   renderMap();
-  selectMapLevel(Math.min(state.highestUnlockedLevel, state.selectedLevel), true);
-  elements.profileProgressText.textContent = `Profil sauvegarde pour ${state.profileName}`;
-  setMascotSpeech(`Salut ${state.profileName} ! La carte est prete pour toi.`);
+  selectMapLevel(state.selectedLevel, true);
+  
+  const greeting = getTimeGreeting();
+  setMascotSpeech(`Salut ${state.profileName} ! ${greeting}`);
+  console.log(`✅ Profil [${nextName}] validé et actif.`);
 }
 
 function unlockBadge(badgeId) {
@@ -423,17 +448,66 @@ function getAccuracy(correct, attempts) {
 }
 
 function setMascotSpeech(message) {
-  elements.mascotSpeech.textContent = message;
-  elements.mascotName.textContent = "Nova";
-  if (window.gsap && !REDUCED_MOTION) {
-    elements.mascotAvatar.dataset.state = "victory";
-    gsap.fromTo(elements.mascotAvatar, { rotate: -3, y: 0 }, { rotate: 3, y: -4, duration: 0.14, yoyo: true, repeat: 1, ease: "power1.inOut" });
-    window.setTimeout(() => {
-      if (elements.mascotAvatar) {
-        elements.mascotAvatar.dataset.state = "idle";
-      }
-    }, 520);
+  state.dialogueQueue.push(message);
+  if (!state.isTyping) {
+    processNextDialogue();
   }
+}
+
+function processNextDialogue() {
+  if (state.dialogueQueue.length === 0) {
+    state.isTyping = false;
+    return;
+  }
+
+  state.isTyping = true;
+  const message = state.dialogueQueue.shift();
+  elements.mascotName.textContent = "Nova";
+  
+  // Animation de la mascotte pendant qu'elle parle
+  if (window.gsap && !REDUCED_MOTION) {
+    gsap.to(elements.mascotAvatar, { 
+      scale: 1.05, 
+      duration: 0.2, 
+      yoyo: true, 
+      repeat: 1 
+    });
+  }
+
+  typeWriteText(message, elements.mascotSpeech, () => {
+    // Pause entre les messages si la file n'est pas vide
+    window.setTimeout(processNextDialogue, 1500);
+  });
+}
+
+function typeWriteText(text, container, callback) {
+  container.textContent = "";
+  let index = 0;
+  
+  // Vitesse de frappe (plus rapide pour les longs messages)
+  const speed = text.length > 50 ? 20 : 40;
+
+  function type() {
+    if (index < text.length) {
+      container.textContent += text.charAt(index);
+      index++;
+      setTimeout(type, speed);
+    } else if (callback) {
+      callback();
+    }
+  }
+  type();
+}
+
+function getAdviceForLevel(level) {
+  const advices = {
+    1: "Astuce : Multiplier par 2, c'est juste calculer le double !",
+    2: "Le vent du moulin dit : 3 x 3 font 9, ne l'oublie pas !",
+    4: "Pour la table de 4, double le résultat de la table de 2 !",
+    5: "La table de 5 finit toujours par 0 ou 5, facile non ?",
+    10: "Concentration ! Pour le boss, regarde bien le résultat pour trouver le trou."
+  };
+  return advices[level] || "Respire un grand coup, tu vas y arriver !";
 }
 
 function selectPreferredVoice() {
@@ -465,7 +539,7 @@ async function loadMapSceneFactory() {
   }
 
   if (!state.mapSceneLoader) {
-    state.mapSceneLoader = import(`./map-scene.js?v=20260421d`)
+    state.mapSceneLoader = import("./map-scene.js?v=20260423a")
       .then(() => window.MultiplicationSprintMapScene?.createMapScene || null)
       .catch((error) => {
         console.error("Map scene module failed to load:", error);
@@ -478,17 +552,16 @@ async function loadMapSceneFactory() {
 
 async function ensureMapScene3D() {
   if (!elements.mapSceneMount || !elements.worldMap) {
-    return;
+    return false;
   }
 
   const factory = await loadMapSceneFactory();
   if (!factory) {
-    return;
+    throw new Error("Le module de rendu 3D (map-scene.js) n'a pas pu être chargé");
   }
 
   if (!state.mapScene3D) {
-    state.mapScene3D = factory(elements.mapSceneMount);
-    elements.worldMap.classList.add("webgl-enhanced");
+    state.mapScene3D = factory(elements.mapSceneMount, REDUCED_MOTION);
   }
 
   state.mapScene3D.setUnlockedLevel(state.highestUnlockedLevel);
@@ -496,21 +569,25 @@ async function ensureMapScene3D() {
   state.mapScene3D.resize?.();
 }
 
-function hydrateMapScene3D() {
-  if (!elements.mapScreen.classList.contains("screen-active")) {
-    return;
+async function hydrateMapScene3D() {
+  console.log("hydrateMapScene3D: Début de l'hydratation 3D.");
+  try {
+    console.log(`hydrateMapScene3D: mapSceneMount dimensions avant reflow: ${elements.mapSceneMount.clientWidth}x${elements.mapSceneMount.clientHeight}`);
+    elements.mapSceneMount.offsetHeight; // Force reflow to ensure correct dimensions
+    console.log(`hydrateMapScene3D: mapSceneMount dimensions après reflow: ${elements.mapSceneMount.clientWidth}x${elements.mapSceneMount.clientHeight}`);
+
+    // On force l'ajout de la classe WebGL pour masquer les éléments 2D redondants
+    
+    // (elements.worldMap) elements.worldMap.style.background = "transparent";
+
+    console.log("hydrateMapScene3D: Appel de ensureMapScene3D...");
+    await ensureMapScene3D();
+    console.log("hydrateMapScene3D: ensureMapScene3D terminé. Tentative de redimensionnement.");
+    
+    setTimeout(() => state.mapScene3D?.resize?.(), 100); // On force un resize après un court délai pour s'assurer que le canvas occupe tout l'espace
+  } catch (error) {
+    console.error("Échec de l'hydratation 3D, repli sur la carte 2D :", error);
   }
-
-  ensureMapScene3D().then(() => {
-    window.requestAnimationFrame(() => {
-      state.mapScene3D?.resize?.();
-      window.setTimeout(() => {
-        state.mapScene3D?.resize?.();
-      }, 120);
-    });
-  });
-
-  elements.worldMap.classList.add("webgl-enhanced");
 }
 
 function showScreen(screen) {
@@ -523,6 +600,14 @@ function showScreen(screen) {
     }
   });
 
+  // Retrait de la mascotte pendant le jeu pour plus de clarté et immersion
+  const mascotRow = document.querySelector('.mascot-row');
+  if (mascotRow) {
+    const isGameScreen = screen === elements.gameScreen;
+    mascotRow.style.display = isGameScreen ? "none" : "grid";
+    mascotRow.style.opacity = isGameScreen ? "0" : "1";
+  }
+
   // Show target screen - add class first so display: block is applied
   screen.classList.add("screen-active");
   
@@ -530,8 +615,8 @@ function showScreen(screen) {
   if (window.gsap && !REDUCED_MOTION) {
     // Animate the screen itself
     gsap.fromTo(screen, 
-      { opacity: 0 }, 
-      { opacity: 1, duration: 0.4, ease: "power2.out" }
+      { opacity: 0, filter: "blur(10px)" }, 
+      { opacity: 1, filter: "blur(0px)", duration: 0.6, ease: "power2.out", clearProps: "filter" }
     );
     
     // Animate content elements with stagger
@@ -667,9 +752,13 @@ function updateSelectedLevelCard() {
 }
 
 function positionMascotOnMap(instant = false) {
+  // On masque la mascotte DOM car elle est maintenant gérée par Three.js
+  if (elements.mapMascot) elements.mapMascot.style.display = "none";
+  
   const levelData = MAP_LEVELS[state.selectedLevel - 1];
   const targetX = `calc(${levelData.x}% - 41px)`;
   const targetY = `calc(${levelData.y}% - 56px)`;
+
   if (!window.gsap || REDUCED_MOTION || instant) {
     elements.mapMascot.style.left = targetX;
     elements.mapMascot.style.top = targetY;
@@ -701,31 +790,7 @@ function selectMapLevel(level, instant = false) {
 }
 
 function renderMap() {
-  elements.mapNodes.innerHTML = "";
-  MAP_LEVELS.forEach((node, index) => {
-    const level = index + 1;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "map-node";
-    button.classList.add(`node-${node.biome}`);
-    if (level > state.highestUnlockedLevel) button.classList.add("locked");
-    if (level === state.selectedLevel) button.classList.add("selected");
-    if (node.boss) button.classList.add("boss-node");
-    button.style.left = `calc(${node.x}% - 37px)`;
-    button.style.top = `calc(${node.y}% - 37px)`;
-    button.innerHTML = `
-      <span class="node-core">${level}</span>
-      <span class="node-label">${node.landmark}</span>
-      <span class="node-stars">${"★".repeat(state.levelStarsMap[index] || 0)}</span>
-    `;
-    button.addEventListener("click", () => {
-      if (level <= state.highestUnlockedLevel) {
-        selectMapLevel(level);
-      }
-    });
-    elements.mapNodes.appendChild(button);
-  });
-  renderMapPath();
+  // Le rendu des niveaux est désormais géré par les lanternes 3D dans map-scene.js.
   elements.mapProgressDisplay.textContent = `${state.highestUnlockedLevel}/10`;
   elements.mapStarsDisplay.textContent = state.levelStarsMap.reduce((sum, value) => sum + value, 0);
   state.mapScene3D?.setUnlockedLevel(state.highestUnlockedLevel);
@@ -765,13 +830,35 @@ function renderMapPath() {
 
 function generateQuestion() {
   const currentLevelIndex = state.level - 1;
-  const shouldReviewPreviousLevel = state.level > 1 && Math.random() < 0.35;
-  const selectedLevelIndex = shouldReviewPreviousLevel ? randomBetween(0, currentLevelIndex - 1) : currentLevelIndex;
-  const config = getModeConfig().ranges[selectedLevelIndex];
-  const first = randomBetween(config.a[0], config.a[1]);
-  const second = randomBetween(config.b[0], config.b[1]);
-  state.currentQuestionSourceLevel = selectedLevelIndex + 1;
-  return { first, second, answer: first * second };
+  const config = getModeConfig().ranges[currentLevelIndex];
+  
+  if (state.level === TOTAL_LEVELS) { // Boss level
+    const factor1 = randomBetween(config.a[0], config.a[1]);
+    const factor2 = randomBetween(config.b[0], config.b[1]);
+    const product = factor1 * factor2;
+    
+    let questionDisplay;
+    let correctAnswer;
+    
+    if (Math.random() < 0.5) { // Hide factor1
+      questionDisplay = `? x ${factor2} = ${product}`;
+      correctAnswer = factor1;
+    } else { // Hide factor2
+      questionDisplay = `${factor1} x ? = ${product}`;
+      correctAnswer = factor2;
+    }
+    
+    state.currentQuestionSourceLevel = TOTAL_LEVELS; // Always boss level
+    return { first: factor1, second: factor2, answer: correctAnswer, display: questionDisplay, isBoss: true };
+  } else { // Normal level
+    const shouldReviewPreviousLevel = state.level > 1 && Math.random() < 0.35;
+    const selectedLevelIndex = shouldReviewPreviousLevel ? randomBetween(0, currentLevelIndex - 1) : currentLevelIndex;
+    const normalConfig = getModeConfig().ranges[selectedLevelIndex];
+    const first = randomBetween(normalConfig.a[0], normalConfig.a[1]);
+    const second = randomBetween(normalConfig.b[0], normalConfig.b[1]);
+    state.currentQuestionSourceLevel = selectedLevelIndex + 1;
+    return { first, second, answer: first * second, display: `${first} x ${second}`, isBoss: false };
+  }
 }
 
 function generateAnswerOptions(answer) {
@@ -834,14 +921,16 @@ function setFeedback(message, type = "") {
 }
 
 function updateQuestionUI() {
-  const { first, second } = state.currentQuestion;
-  elements.questionText.textContent = `${first} x ${second}`;
+  elements.questionText.textContent = state.currentQuestion.display;
   elements.questionBadge.textContent = state.currentQuestionSourceLevel < state.level ? `Revision du niveau ${state.currentQuestionSourceLevel}` : state.level === TOTAL_LEVELS ? "Boss du chateau" : `Niveau ${state.level}`;
   renderAnswerOptions();
   setFeedback("Choisis la bonne reponse avant la fin du chrono.");
   elements.bonusBanner.textContent = "";
   state.acceptingAnswer = true;
-  setMascotSpeech(state.sessionMode === "duo" ? `A toi Joueur ${state.currentPlayer + 1} !` : `En route ${state.profileName}, le niveau ${state.level} t'attend.`);
+  // On ne met à jour la voix que si nécessaire, mais on n'affiche plus la bulle si la mascotte est masquée
+  if (state.sessionMode === "duo") {
+    setMascotSpeech(`A toi Joueur ${state.currentPlayer + 1} !`);
+  }
   updateScoreboard();
   if (window.gsap && !REDUCED_MOTION) {
     gsap.fromTo(elements.questionCard, { opacity: 0, scale: 0.92, y: 26 }, { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: "back.out(1.6)" });
@@ -919,7 +1008,17 @@ function playSound(type) {
 function speakQuestion() {
   if (!state.voiceEnabled || !("speechSynthesis" in window) || !state.currentQuestion) return;
   window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(`${state.currentQuestion.first} fois ${state.currentQuestion.second}`);
+  let speechText;
+  if (state.currentQuestion.isBoss) {
+    if (state.currentQuestion.display.startsWith('?')) {
+      speechText = `Combien fois ${state.currentQuestion.second} égale ${state.currentQuestion.first * state.currentQuestion.second}`;
+    } else {
+      speechText = `${state.currentQuestion.first} fois combien égale ${state.currentQuestion.first * state.currentQuestion.second}`;
+    }
+  } else {
+    speechText = `${state.currentQuestion.first} fois ${state.currentQuestion.second}`;
+  }
+  const utterance = new SpeechSynthesisUtterance(speechText);
   utterance.lang = "fr-FR";
   utterance.rate = state.mode === "kids" ? 0.92 : 1;
   if (state.preferredVoice) utterance.voice = state.preferredVoice;
@@ -1090,18 +1189,36 @@ function beginLevelFromMap() {
   state.levelStars = 0;
   state.timeLimit = getModeConfig().baseTime;
   state.lastUnlockedBadges = [];
+  
+  // Apply boss level specific time reduction
+  if (state.level === TOTAL_LEVELS) {
+    state.timeLimit = state.timeLimit * 0.8; // 20% reduction
+  }
   captureLevelSnapshot();
+  
+  // Mise à jour de l'arrière-plan immersif basé sur le biome
+  const levelData = MAP_LEVELS[state.level - 1];
+  elements.gameScreen.dataset.biome = levelData.biome;
+  
   showScreen(elements.gameScreen);
   beginQuestion();
 }
 
 function updateProgressAfterWin() {
   const profile = getProfileRecord(state.activeProfileId, state.profileName);
+  const previousUnlocked = state.highestUnlockedLevel;
+  
   profile.stats.levelsCleared += 1;
   profile.stats.bestLevel = Math.max(profile.stats.bestLevel, state.level);
   state.highestUnlockedLevel = Math.min(TOTAL_LEVELS, Math.max(state.highestUnlockedLevel, state.level + 1));
   state.levelStarsMap[state.level - 1] = Math.max(state.levelStarsMap[state.level - 1], state.levelStars);
   state.selectedLevel = state.level === TOTAL_LEVELS ? TOTAL_LEVELS : Math.min(state.highestUnlockedLevel, state.level + 1);
+
+  // Déclenchement de l'animation 3D si déblocage
+  if (state.highestUnlockedLevel > previousUnlocked) {
+    state.mapScene3D?.playUnlockAnimation(state.highestUnlockedLevel);
+  }
+
   profile.highestUnlockedLevel = state.highestUnlockedLevel;
   profile.levelStars = [...state.levelStarsMap];
   profile.stats.totalStars = state.levelStarsMap.reduce((sum, value) => sum + value, 0);
@@ -1121,6 +1238,11 @@ function showCheckpoint() {
   renderStars(elements.checkpointStars, state.levelStars);
 
   if (state.levelPassed) {
+    // On s'assure que les fonctions globales sont disponibles pour api-sync.js
+    window.state = state;
+    window.getAccuracy = getAccuracy;
+    window.persistProfiles = persistProfiles;
+
     updateProgressAfterWin();
     state.starsEarned = state.levelStarsMap.reduce((sum, value) => sum + value, 0);
     unlockBadge("first_win");
@@ -1135,6 +1257,12 @@ function showCheckpoint() {
       : "Ton score est suffisant. La mascotte peut avancer sur la prochaine case.";
     elements.checkpointPrimaryButton.textContent = state.level === TOTAL_LEVELS ? "Voir la fin" : "Retour a la carte";
     setMascotSpeech(state.level === TOTAL_LEVELS ? "Le boss est battu !" : "Une nouvelle case vient de s'ouvrir.");
+
+    // On déclenche les confettis 3D
+    if (state.mapScene3D) {
+      state.mapScene3D.spawnVictoryConfetti?.();
+    }
+
     playSound("pass");
     createParticles("success");
   } else {
@@ -1143,6 +1271,12 @@ function showCheckpoint() {
     elements.checkpointMessage.textContent = "Le score du niveau n'est pas suffisant. Tu peux revenir sur la carte ou retenter ce niveau.";
     elements.checkpointPrimaryButton.textContent = "Retour a la carte";
     setMascotSpeech("On peut retenter ce niveau quand tu veux.");
+    
+    // Suivi des échecs pour conseils
+    state.levelFailuresMap[state.level] = (state.levelFailuresMap[state.level] || 0) + 1;
+    if (state.levelFailuresMap[state.level] >= 2) {
+      setMascotSpeech(getAdviceForLevel(state.level));
+    }
   }
 
   if (state.sessionMode === "duo") {
@@ -1216,13 +1350,22 @@ function endGame({ title, eyebrow, message }) {
 }
 
 function openMap() {
-  state.selectedLevel = Math.min(state.selectedLevel, state.highestUnlockedLevel);
-  updateBestScoreDisplays();
-  updateProfileUI();
-  renderMap();
-  showScreen(elements.mapScreen);
-  hydrateMapScene3D();
-  positionMascotOnMap(true);
+  console.log("openMap: Transition instantanée vers l'écran de la carte.");
+  try {
+    state.selectedLevel = Math.min(state.selectedLevel, state.highestUnlockedLevel);
+    updateBestScoreDisplays();
+    updateProfileUI();
+    renderMap();
+    showScreen(elements.mapScreen);
+    
+    // Hydratation 3D asynchrone pour ne pas bloquer l'UI
+    hydrateMapScene3D().catch(error => {
+      console.error("Échec du chargement 3D en arrière-plan:", error);
+    });
+  } catch (error) {
+    console.error("Erreur lors de l'ouverture de la carte:", error);
+    showScreen(elements.mapScreen);
+  }
 }
 
 function returnToMapFromCheckpoint() {
@@ -1272,6 +1415,7 @@ function jumpToParentStats() {
 }
 
 function runButtonAction(actionId) {
+  console.log("runButtonAction: Exécution de l'action demandée ->", actionId);
   const actions = {
     mapNavHubButton: () => showScreen(elements.startScreen),
     mapNavStatsButton: jumpToParentStats,
@@ -1292,8 +1436,10 @@ function runButtonAction(actionId) {
     checkpointRetryButton: retryCurrentLevelFromCheckpoint
   };
   const action = actions[actionId];
-  if (action) {
+  if (typeof action === 'function') {
     action();
+  } else {
+    console.warn(`Action non définie pour l'ID: ${actionId}`);
   }
 }
 
@@ -1345,59 +1491,39 @@ function registerServiceWorker() {
   }
 }
 
-function runLoadingIntro() {
-  const hideLoading = () => {
-    if (elements.loadingScreen) {
-      elements.loadingScreen.classList.add("loading-hidden");
+window.updateLoadingBar = (progress) => {
+  if (elements.loadingBar) {
+    const safeProgress = Math.max(0, Math.min(100, progress));
+    if (window.gsap && !REDUCED_MOTION) {
+      gsap.to(elements.loadingBar, { width: `${safeProgress}%`, duration: 0.3 });
+    } else {
+      elements.loadingBar.style.width = `${safeProgress}%`;
     }
-  };
-
-  window.setTimeout(hideLoading, 1800);
-
-  if (!window.gsap || REDUCED_MOTION) {
-    if (elements.loadingBar) {
-      elements.loadingBar.style.width = "100%";
-    }
-    window.setTimeout(hideLoading, 500);
-    return;
   }
+};
 
-  gsap.timeline({ onComplete: hideLoading })
-    .to(elements.loadingBar, { width: "100%", duration: 0.9, ease: "power2.inOut" })
-    .to(".loading-stars span", { y: -12, duration: 0.16, stagger: 0.06, repeat: 2, yoyo: true }, "<")
-    .to(elements.loadingScreen, { opacity: 0, duration: 0.25, ease: "power2.out" });
+window.completeLoadingIntro = () => {
+  if (!elements.loadingScreen) return;
+  if (window.gsap && !REDUCED_MOTION) {
+    gsap.to(elements.loadingScreen, { opacity: 0, duration: 0.5, ease: "power2.out", onComplete: () => elements.loadingScreen.classList.add("loading-hidden") });
+  } else {
+    elements.loadingScreen.classList.add("loading-hidden");
+  }
+};
+
+function runLoadingIntro() {
+  console.log("runLoadingIntro: En attente du chargement des assets 3D...");
+  // On laisse désormais le LoadingManager de Three.js appeler completeLoadingIntro
 }
 
 function bindEvents() {
-  const knownIds = [
-    "mapNavHubButton",
-    "mapNavStatsButton",
-    "mapNavRewardsButton",
-    "openMapButton",
-    "backToHubButton",
-    "enterLevelButton",
-    "returnToMapButton",
-    "restartButton",
-    "kidsModeButton",
-    "expertModeButton",
-    "soloModeButton",
-    "duoModeButton",
-    "voiceToggleButton",
-    "speakButton",
-    "saveProfileButton",
-    "checkpointPrimaryButton",
-    "checkpointRetryButton"
-  ];
-
-
-  knownIds.forEach((id) => {
-    bindClick(elements[id], id);
-  });
+  console.log("🔗 bindEvents: Configuration des écouteurs globaux.");
 
   if (elements.profileNameInput) {
     elements.profileNameInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
+        elements.profileNameInput.blur(); // Feedback visuel de validation
         saveProfileFromInput();
       }
     });
@@ -1420,68 +1546,189 @@ function bindEvents() {
   });
 
   document.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-action], button[id]");
+    const button = event.target.closest("button[data-action], button[id], .mode-card");
     if (!button) {
       return;
     }
 
     const actionId = button.dataset.action || button.id;
-    if (!knownIds.includes(actionId) || button.dataset.codexHandled) {
-      return;
-    }
+    if (!actionId) return;
 
-    button.dataset.codexHandled = "true";
+    if (button.hasAttribute('data-busy')) return;
+
+    button.setAttribute('data-busy', 'true');
     window.setTimeout(() => {
-      delete button.dataset.codexHandled;
-    }, 0);
+      button.removeAttribute('data-busy');
+    }, 100);
+
     runButtonAction(actionId);
   });
 }
 
-function init() {
-  console.log("🎮 Démarrage de l'application...");
-  
-  if (window.__appBooted) {
-    console.warn("⚠️ App déjà démarrée - arrêt");
+// Stabilisation de la carte : la couche DOM reste la source de vérité,
+// la scène 3D enrichit l'arrière-plan sans bloquer la progression.
+async function loadMapSceneFactory() {
+  if (window.MultiplicationSprintMapScene?.createMapScene) {
+    return window.MultiplicationSprintMapScene.createMapScene;
+  }
+
+  if (!state.mapSceneLoader) {
+    state.mapSceneLoader = import("./map-scene.js?v=20260423a")
+      .then((module) => module?.createMapScene || window.MultiplicationSprintMapScene?.createMapScene || null)
+      .catch((error) => {
+        console.error("Map scene module failed to load:", error);
+        return null;
+      });
+  }
+
+  return state.mapSceneLoader;
+}
+
+async function ensureMapScene3D() {
+  if (!elements.mapSceneMount || !elements.worldMap) {
+    return false;
+  }
+
+  const factory = await loadMapSceneFactory();
+  if (!factory) {
+    return false;
+  }
+
+  if (!state.mapScene3D) {
+    state.mapScene3D = factory(elements.mapSceneMount, REDUCED_MOTION);
+  }
+
+  state.mapScene3D?.setUnlockedLevel?.(state.highestUnlockedLevel);
+  state.mapScene3D?.setSelectedLevel?.(state.selectedLevel);
+  state.mapScene3D?.resize?.();
+  return true;
+}
+
+async function hydrateMapScene3D() {
+  try {
+    if (!elements.mapSceneMount || !elements.worldMap) {
+      return false;
+    }
+    elements.mapSceneMount.offsetHeight;
+    const ready = await ensureMapScene3D();
+    if (!ready) {
+      return false;
+    }
+    window.setTimeout(() => state.mapScene3D?.resize?.(), 100);
+    return true;
+  } catch (error) {
+    console.error("Echec de l'hydratation 3D, repli sur la carte DOM :", error);
+    return false;
+  }
+}
+
+function positionMascotOnMap(instant = false) {
+  if (!elements.mapMascot) {
     return;
   }
-  window.__appBooted = true;
-  window.__appInitialized = true;
-  
-  console.log("📋 Initialisation du profil...");
-  ensureActiveProfile();
-  selectPreferredVoice();
-  if ("speechSynthesis" in window) {
-    window.speechSynthesis.onvoiceschanged = selectPreferredVoice;
+
+  const levelData = MAP_LEVELS[state.selectedLevel - 1];
+  if (!levelData) {
+    return;
   }
-  
-  console.log("⚙️ Configuration des modes...");
-  setMode("kids");
-  setSessionMode("solo");
-  setVoiceEnabled(true);
-  
-  console.log("🎨 Mise à jour de l'UI...");
-  updateBestScoreDisplays();
-  updateProfileUI();
-  renderMap();
-  positionMascotOnMap(true);
-  updateScoreboard();
-  renderTimer();
-  
-  window.msButton = runButtonAction;
-  console.log("🔗 Binding des événements...");
-  bindEvents();
-  
-  console.log("✨ Animation de la carte...");
-  animateMapAmbient();
-  setupInstallPrompt();
-  registerServiceWorker();
-  runLoadingIntro();
-  
-  console.log("📺 Affichage de l'écran d'accueil...");
-  showScreen(elements.startScreen);
-  
-  console.log("✅ Application démarrée avec succès!");
+
+  const targetX = `calc(${levelData.x}% - 41px)`;
+  const targetY = `calc(${levelData.y}% - 56px)`;
+  elements.mapMascot.style.display = "grid";
+
+  if (!window.gsap || REDUCED_MOTION || instant) {
+    elements.mapMascot.style.left = targetX;
+    elements.mapMascot.style.top = targetY;
+    elements.mapMascot.style.transform = "scaleX(1)";
+    elements.mapMascot.style.setProperty("--map-mascot-hop", "0px");
+    setMapHeroState("idle");
+    elements.mapMascot.dataset.lastX = String(levelData.x);
+    return;
+  }
+
+  setMapHeroState("walk");
+  const previousX = Number.parseFloat(elements.mapMascot.dataset.lastX || String(levelData.x));
+  const facing = levelData.x >= previousX ? 1 : -1;
+  gsap.killTweensOf(elements.mapMascot);
+  elements.mapMascot.style.transform = `scaleX(${facing})`;
+  gsap.timeline({
+    onComplete: () => {
+      setMapHeroState("idle");
+      elements.mapMascot.dataset.lastX = String(levelData.x);
+      elements.mapMascot.style.setProperty("--map-mascot-hop", "0px");
+      state.mapScene3D?.setSelectedLevel?.(state.selectedLevel);
+    }
+  })
+    .to(elements.mapMascot, { left: targetX, top: targetY, duration: 0.72, ease: "power1.inOut" }, 0)
+    .to(elements.mapMascot, {
+      duration: 0.16,
+      repeat: 3,
+      yoyo: true,
+      ease: "sine.inOut",
+      onUpdate() {
+        const y = gsap.getProperty(elements.mapMascot, "y");
+        elements.mapMascot.style.setProperty("--map-mascot-hop", `${y}px`);
+      }
+    }, 0)
+    .set(elements.mapMascot, { y: 0 }, ">-0.01");
+}
+
+function renderMap() {
+  if (elements.mapNodes) {
+    elements.mapNodes.innerHTML = MAP_LEVELS.map((levelData, index) => {
+      const level = index + 1;
+      const isUnlocked = level <= state.highestUnlockedLevel;
+      const isSelected = level === state.selectedLevel;
+      const starCount = state.levelStarsMap[index] || 0;
+      return `
+        <button
+          class="map-node node-${levelData.biome} ${isUnlocked ? "" : "locked"} ${isSelected ? "selected" : ""} ${levelData.boss ? "boss-node" : ""}"
+          type="button"
+          data-level="${level}"
+          style="left: calc(${levelData.x}% - 44px); top: calc(${levelData.y}% - 44px);"
+          aria-label="Niveau ${level}${isUnlocked ? "" : " verrouille"}"
+          ${isUnlocked ? "" : "disabled"}
+        >
+          <span class="node-core">${level}</span>
+          <span class="node-label">${levelData.landmark}</span>
+          <span class="node-stars">${"★".repeat(starCount)}${"☆".repeat(Math.max(0, 3 - starCount))}</span>
+        </button>
+      `;
+    }).join("");
+
+    elements.mapNodes.querySelectorAll(".map-node").forEach((node) => {
+      node.addEventListener("click", () => {
+        const level = Number.parseInt(node.dataset.level || "1", 10);
+        selectMapLevel(level, false);
+      });
+    });
+  }
+
+  renderMapPath();
+  elements.mapProgressDisplay.textContent = `${state.highestUnlockedLevel}/10`;
+  elements.mapStarsDisplay.textContent = state.levelStarsMap.reduce((sum, value) => sum + value, 0);
+  state.mapScene3D?.setUnlockedLevel?.(state.highestUnlockedLevel);
+  state.mapScene3D?.setSelectedLevel?.(state.selectedLevel);
+  updateSelectedLevelCard();
+}
+
+function openMap() {
+  try {
+    state.selectedLevel = Math.min(state.selectedLevel, state.highestUnlockedLevel);
+    updateBestScoreDisplays();
+    updateProfileUI();
+    renderMap();
+    showScreen(elements.mapScreen);
+    positionMascotOnMap(true);
+    hydrateMapScene3D().then((ready) => {
+      if (!ready) {
+        positionMascotOnMap(true);
+      }
+    });
+  } catch (error) {
+    console.error("Erreur lors de l'ouverture de la carte:", error);
+    showScreen(elements.mapScreen);
+  }
 }
 
 function bootApp() {
@@ -1526,5 +1773,11 @@ function bootApp() {
     showScreen(elements.startScreen);
   }
 }
+
+// Exportation des fonctions pour le module de synchronisation API
+window.persistProfiles = persistProfiles;
+window.showCheckpoint = showCheckpoint;
+window.selectMapLevel = selectMapLevel;
+window.state = state;
 
 bootApp();

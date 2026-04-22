@@ -440,3 +440,49 @@ La priorite est :
 - de faire converger le projet vers une experience premium stable
 
 Ce document doit etre considere comme la reference principale de pilotage jusqu'a sa prochaine mise a jour explicite.
+
+## 16. Audit Branche Locale en Cours
+
+Cette section documente les risques observes dans les modifications locales non encore stabilisees.
+
+### Blocages critiques detectes
+
+1. La carte HTML a ete retiree de `index.html`, mais `script.js` contient encore des references actives a `mapMascot`.
+   - Si `elements.mapMascot` est nul, `positionMascotOnMap()` peut casser l'ouverture de la carte.
+   - Tant que la migration 100% Three.js n'est pas complete, toute suppression de noeuds DOM doit etre accompagnee d'une purge complete de leurs usages JS.
+
+2. `map-scene.js` importe des modules `unpkg.com`, alors que la CSP du serveur n'autorise actuellement pas `unpkg`.
+   - En environnement serveur Express, la carte 3D peut etre bloquee par la politique de securite.
+   - Toute dependance distante de type module doit etre alignee avec `helmet` ou rematérialisée localement.
+
+3. Les nouveaux sprites `nova-idle.png`, `nova-walk.png` et `nova-victory.png` sont references par le front mais ne font pas partie des assets actuellement presents dans `assets/characters`.
+   - Cela degrade immediatement le rendu de la mascotte et peut casser des etats visuels attendus.
+
+### Implications de stabilite
+
+- la branche locale contient des travaux de transition, pas encore un etat proprement publiable
+- il ne faut pas pousser cette branche telle quelle sans corriger les blocages critiques
+- le `MASTER_GUIDE.md` reste la reference, mais la branche de travail doit etre traitee comme une branche d'integration en cours
+
+### Regle immediate
+
+Avant tout prochain push structurel sur la carte ou l'infrastructure front :
+
+- verifier que le HTML, le CSS et le JS pointent vers les memes composants
+- verifier que tous les assets references existent physiquement
+- verifier que la CSP autorise les ressources chargees
+
+### Correctif de stabilisation applique le 23 avril 2026
+
+Une passe de stabilisation a ensuite ete appliquee pour remettre la carte dans un etat publiable plus robuste :
+
+- le fallback DOM de la carte a ete restaure comme source de verite de selection
+- la couche `Three.js` a ete simplifiee pour devenir une couche d'ambiance locale, et non plus un remplacement fragile de l'UI
+- les imports distants ont ete supprimes au profit d'un chargement local de `three`
+- les references aux sprites `nova-*` ont ete remplacees par des assets reellement presents
+- le service worker a ete realigne avec les vrais fichiers servis
+
+Decision structurante :
+
+- tant que la carte 3D premium n'a pas une integration totalement aboutie, la navigation de progression doit rester pilotee par le DOM interactif
+- la 3D enrichit, mais ne doit jamais devenir un point de rupture pour l'ouverture de la carte ou la selection de niveau

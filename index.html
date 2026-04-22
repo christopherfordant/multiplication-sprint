@@ -67,8 +67,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css?v=20260421d">
-  <link rel="stylesheet" href="animations-enhanced.css?v=20260421a">
+  <link rel="stylesheet" href="style.css?v=20260423a">
+  <link rel="stylesheet" href="animations-enhanced.css?v=20260421c">
   
   <!-- Performance DNS Prefetch -->
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
@@ -263,44 +263,6 @@
 
           <div class="world-map" id="worldMap">
             <div id="mapSceneMount" class="map-scene-mount" aria-hidden="true"></div>
-            <div class="world-backdrop"></div>
-            <div class="map-sun" aria-hidden="true"></div>
-            <div class="atlas-corner atlas-corner-left" aria-hidden="true"></div>
-            <div class="atlas-corner atlas-corner-right" aria-hidden="true"></div>
-            <div class="compass-rose" aria-hidden="true"></div>
-            <div class="cloud-bank cloud-bank-top" aria-hidden="true"></div>
-            <div class="cloud-bank cloud-bank-bottom" aria-hidden="true"></div>
-            <div class="biome biome-prairie" aria-hidden="true">
-              <div class="biome-label">Prairies d'emeraude</div>
-              <div class="landmark-scene landmark-windmill"></div>
-            </div>
-            <div class="biome biome-forest" aria-hidden="true">
-              <div class="biome-label">Foret des lanternes</div>
-              <div class="landmark-scene landmark-bridge"></div>
-            </div>
-            <div class="biome biome-desert" aria-hidden="true">
-              <div class="biome-label">Dunes dorees</div>
-              <div class="landmark-scene landmark-ruins"></div>
-            </div>
-            <div class="biome biome-cliffs" aria-hidden="true">
-              <div class="biome-label">Falaises du veilleur</div>
-              <div class="landmark-scene landmark-tower"></div>
-            </div>
-            <div class="biome biome-isles" aria-hidden="true">
-              <div class="biome-label">Iles du dragon</div>
-              <div class="landmark-scene landmark-gate"></div>
-            </div>
-            <div class="castle-silhouette castle-fortress" aria-hidden="true">
-              <div class="tower left"></div>
-              <div class="tower right"></div>
-              <div class="castle-main"></div>
-              <div class="castle-gate"></div>
-              <div class="castle-banner"></div>
-              <div class="boss-orb"></div>
-            </div>
-            <div class="bridge bridge-one" aria-hidden="true"></div>
-            <div class="bridge bridge-two" aria-hidden="true"></div>
-            <div class="bridge bridge-three" aria-hidden="true"></div>
             <div id="mapPath" class="map-path" aria-hidden="true"></div>
             <div id="mapNodes" class="map-nodes" aria-label="Carte des niveaux"></div>
             <div id="mapMascot" class="map-mascot hero-sprite" data-state="idle" aria-hidden="true">
@@ -527,7 +489,9 @@
     });
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
-  <script type="module" src="map-scene.js?v=20260421d"></script>
-  <script src="script.js?v=20260421d" defer></script>
+  <script type="module" src="map-scene.js?v=20260423a"></script>
+  <script src="script.js?v=20260423a" defer></script>
+  <script src="api-sync.js" defer></script>
+  <script src="checkpoint-animations.js" defer></script>
 </body>
 </html>
