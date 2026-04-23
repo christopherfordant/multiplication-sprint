@@ -188,10 +188,11 @@ function createPortal(index, level, selectedLevel, unlockedLevel, glowTexture) {
   const group = new THREE.Group();
   const isUnlocked = index + 1 <= unlockedLevel;
   const isSelected = index + 1 === selectedLevel;
+  const isNextOpen = index + 1 === selectedLevel + 1 && index + 1 <= unlockedLevel;
   const color = isUnlocked ? level.accent : level.locked;
 
   const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(isSelected ? 0.54 : 0.42, 0.055, 10, 32),
+    new THREE.TorusGeometry(isNextOpen ? 0.68 : (isSelected ? 0.54 : 0.42), isNextOpen ? 0.075 : 0.055, 10, 32),
     makeMat(color, 0.42, 0.1)
   );
   ring.position.y = 1.05;
@@ -207,11 +208,11 @@ function createPortal(index, level, selectedLevel, unlockedLevel, glowTexture) {
     map: glowTexture,
     transparent: true,
     depthWrite: false,
-    opacity: isUnlocked ? (isSelected ? 0.9 : 0.45) : 0.12,
+    opacity: isUnlocked ? (isNextOpen ? 1 : (isSelected ? 0.9 : 0.45)) : 0.12,
     color
   }));
   glow.position.y = 1.05;
-  glow.scale.set(isSelected ? 1.8 : 1.2, isSelected ? 1.8 : 1.2, 1);
+  glow.scale.set(isNextOpen ? 2.35 : (isSelected ? 1.8 : 1.2), isNextOpen ? 2.35 : (isSelected ? 1.8 : 1.2), 1);
 
   const label = new THREE.Mesh(
     new THREE.BoxGeometry(0.34, 0.16, 0.05),
@@ -220,8 +221,20 @@ function createPortal(index, level, selectedLevel, unlockedLevel, glowTexture) {
   label.position.y = 0.42;
 
   group.add(base, ring, glow, label);
+
+  if (isNextOpen) {
+    const arrow = new THREE.Mesh(
+      new THREE.ConeGeometry(0.24, 0.52, 3),
+      makeMat(0xfff2a8, 0.38, 0.16)
+    );
+    arrow.position.set(0, 1.86, 0);
+    arrow.rotation.z = Math.PI;
+    arrow.userData.pulse = true;
+    group.add(arrow);
+  }
+
   group.position.set((index - selectedLevel + 1) * GATE_SPACING, 0, -5.2 - Math.abs(index - selectedLevel + 1) * 0.45);
-  group.userData = { level: index + 1, unlocked: isUnlocked };
+  group.userData = { level: index + 1, unlocked: isUnlocked, nextOpen: isNextOpen };
   return group;
 }
 
@@ -380,6 +393,7 @@ export function createMapScene(mount, reducedMotion = false) {
   let pointerY = 0;
   let heroState = "idle";
   let walkUntil = 0;
+  let travel = null;
 
   function rebuildWorld() {
     disposeObject(currentWorld);
@@ -465,6 +479,25 @@ export function createMapScene(mount, reducedMotion = false) {
     updateSelection();
   }
 
+  function playTravelToLevel(levelIndex) {
+    const target = Math.max(1, Math.min(LEVELS.length, levelIndex));
+    if (target > unlockedLevel) {
+      return Promise.resolve(false);
+    }
+
+    return new Promise((resolve) => {
+      travel = {
+        from: selectedLevel,
+        to: target,
+        start: performance.now(),
+        duration: reducedMotion ? 80 : 1250,
+        resolve
+      };
+      heroState = "walk";
+      walkUntil = performance.now() + travel.duration + 240;
+    });
+  }
+
   function playWaveAnimation() {
     walkUntil = performance.now() + 900;
     heroState = "victory";
@@ -484,8 +517,9 @@ export function createMapScene(mount, reducedMotion = false) {
   function onClick(event) {
     const rect = mount.getBoundingClientRect();
     const third = rect.width / 3;
-    if (event.clientX - rect.left > third * 2 && selectedLevel < unlockedLevel) {
-      window.selectMapLevel?.(selectedLevel + 1, false);
+    if (event.clientX - rect.left > third && selectedLevel < unlockedLevel) {
+      window.advanceJourneyLevel?.();
+      return;
     }
     if (event.clientX - rect.left < third && selectedLevel > 1) {
       window.selectMapLevel?.(selectedLevel - 1, false);
@@ -499,8 +533,26 @@ export function createMapScene(mount, reducedMotion = false) {
     const celebrating = heroState === "victory" && now < walkUntil;
     if (!walking && !celebrating) heroState = "idle";
 
+    if (travel) {
+      const progress = Math.min(1, (now - travel.start) / travel.duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      hero.position.z = 1.2 - eased * 3.95;
+      hero.position.x = Math.sin(eased * Math.PI) * 0.28;
+      camera.position.z = 7.1 - eased * 1.25;
+      camera.position.y = 2.15 + Math.sin(eased * Math.PI) * 0.32;
+      if (progress >= 1) {
+        const done = travel;
+        travel = null;
+        selectedLevel = done.to;
+        hero.position.set(0, 0.02, 1.2);
+        camera.position.set(0, 2.15, 7.1);
+        updateSelection();
+        done.resolve(true);
+      }
+    }
+
     hero.position.y = 0.02 + Math.sin(time * (walking ? 8 : 2.1)) * (walking ? 0.055 : 0.018);
-    hero.rotation.y += ((pointerX * 0.45) - hero.rotation.y) * 0.06;
+    hero.rotation.y += (((travel ? 0 : pointerX) * 0.45) - hero.rotation.y) * 0.06;
     hero.children.forEach((child, index) => {
       if (child.geometry?.type === "CapsuleGeometry" && index > 8) {
         child.rotation.x = walking ? Math.sin(time * 9 + index) * 0.16 : 0;
@@ -523,8 +575,15 @@ export function createMapScene(mount, reducedMotion = false) {
     });
 
     portals.children.forEach((portal, index) => {
-      portal.rotation.y = Math.sin(time * 0.8 + index) * 0.08;
-      portal.position.y = Math.sin(time * 1.4 + index) * 0.035;
+      const isNextOpen = portal.userData?.nextOpen;
+      portal.rotation.y = Math.sin(time * (isNextOpen ? 1.35 : 0.8) + index) * (isNextOpen ? 0.14 : 0.08);
+      portal.position.y = Math.sin(time * (isNextOpen ? 2.4 : 1.4) + index) * (isNextOpen ? 0.075 : 0.035);
+      portal.children.forEach((child) => {
+        if (child.userData?.pulse) {
+          const scale = 1 + Math.sin(time * 4.4) * 0.14;
+          child.scale.setScalar(scale);
+        }
+      });
     });
 
     confetti.children.forEach((sprite) => {
@@ -541,8 +600,11 @@ export function createMapScene(mount, reducedMotion = false) {
       }
     }
 
-    camera.position.x += (pointerX - camera.position.x) * 0.035;
-    camera.position.y += ((2.15 - pointerY) - camera.position.y) * 0.035;
+    if (!travel) {
+      camera.position.x += (pointerX - camera.position.x) * 0.035;
+      camera.position.y += ((2.15 - pointerY) - camera.position.y) * 0.035;
+      camera.position.z += (7.1 - camera.position.z) * 0.035;
+    }
     camera.lookAt(0, 1.12, -2.6);
     renderer.render(scene, camera);
     rafId = requestAnimationFrame(animate);
@@ -570,6 +632,7 @@ export function createMapScene(mount, reducedMotion = false) {
     },
     spawnVictoryConfetti,
     playUnlockAnimation,
+    playTravelToLevel,
     playWaveAnimation,
     resize,
     destroy() {

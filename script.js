@@ -121,6 +121,11 @@ const elements = {
   mapBestScoreDisplay: document.getElementById("mapBestScoreDisplay"),
   mapSceneMount: document.getElementById("mapSceneMount"),
   worldMap: document.getElementById("worldMap"),
+  journeyGuide: document.getElementById("journeyGuide"),
+  journeyGuideEyebrow: document.getElementById("journeyGuideEyebrow"),
+  journeyGuideTitle: document.getElementById("journeyGuideTitle"),
+  journeyGuideText: document.getElementById("journeyGuideText"),
+  journeyAdvanceButton: document.getElementById("journeyAdvanceButton"),
   mapNodes: document.getElementById("mapNodes"),
   mapMascot: document.getElementById("mapMascot"),
   selectedLevelLabel: document.getElementById("selectedLevelLabel"),
@@ -207,6 +212,7 @@ const state = {
   levelStarsMap: Array(TOTAL_LEVELS).fill(0),
   mapScene3D: null,
   mapSceneLoader: null,
+  pendingJourneyLevel: null,
   dialogueQueue: [],
   isTyping: false,
   levelFailuresMap: {}
@@ -539,7 +545,7 @@ async function loadMapSceneFactory() {
   }
 
   if (!state.mapSceneLoader) {
-    state.mapSceneLoader = import("./map-scene.js?v=20260423c")
+    state.mapSceneLoader = import("./map-scene.js?v=20260423d")
       .then(() => window.MultiplicationSprintMapScene?.createMapScene || null)
       .catch((error) => {
         console.error("Map scene module failed to load:", error);
@@ -783,8 +789,12 @@ function positionMascotOnMap(instant = false) {
 }
 
 function selectMapLevel(level, instant = false) {
-  state.selectedLevel = level;
-  state.mapScene3D?.setSelectedLevel(level);
+  const nextLevel = clamp(level, 1, state.highestUnlockedLevel);
+  state.selectedLevel = nextLevel;
+  if (state.pendingJourneyLevel && state.selectedLevel >= state.pendingJourneyLevel) {
+    state.pendingJourneyLevel = null;
+  }
+  state.mapScene3D?.setSelectedLevel(nextLevel);
   renderMap();
   positionMascotOnMap(instant);
 }
@@ -1212,7 +1222,8 @@ function updateProgressAfterWin() {
   profile.stats.bestLevel = Math.max(profile.stats.bestLevel, state.level);
   state.highestUnlockedLevel = Math.min(TOTAL_LEVELS, Math.max(state.highestUnlockedLevel, state.level + 1));
   state.levelStarsMap[state.level - 1] = Math.max(state.levelStarsMap[state.level - 1], state.levelStars);
-  state.selectedLevel = state.level === TOTAL_LEVELS ? TOTAL_LEVELS : Math.min(state.highestUnlockedLevel, state.level + 1);
+  state.selectedLevel = state.level;
+  state.pendingJourneyLevel = state.level === TOTAL_LEVELS ? null : Math.min(state.highestUnlockedLevel, state.level + 1);
 
   // Déclenchement de l'animation 3D si déblocage
   if (state.highestUnlockedLevel > previousUnlocked) {
@@ -1266,6 +1277,7 @@ function showCheckpoint() {
     playSound("pass");
     createParticles("success");
   } else {
+    state.pendingJourneyLevel = null;
     elements.checkpointEyebrow.textContent = "Niveau a retenter";
     elements.checkpointTitle.textContent = "Tu peux faire mieux !";
     elements.checkpointMessage.textContent = "Le score du niveau n'est pas suffisant. Tu peux revenir sur la carte ou retenter ce niveau.";
@@ -1380,7 +1392,37 @@ function returnToMapFromCheckpoint() {
   openMap();
 }
 
+function advanceJourneyFromMap() {
+  const nextLevel = state.pendingJourneyLevel && state.pendingJourneyLevel <= state.highestUnlockedLevel
+    ? state.pendingJourneyLevel
+    : state.selectedLevel + 1;
+
+  if (nextLevel > state.highestUnlockedLevel || nextLevel > TOTAL_LEVELS) {
+    setMascotSpeech("Ce portail est encore ferme. Reussis le niveau actuel pour l'ouvrir.");
+    updateJourneyGuide();
+    return;
+  }
+
+  setMascotSpeech(`En route vers le niveau ${nextLevel} !`);
+  playSound("pass");
+
+  const finishTravel = () => {
+    selectMapLevel(nextLevel, false);
+    state.pendingJourneyLevel = null;
+    renderMap();
+  };
+
+  const travel = state.mapScene3D?.playTravelToLevel?.(nextLevel);
+  if (travel && typeof travel.then === "function") {
+    travel.then(finishTravel).catch(finishTravel);
+    return;
+  }
+
+  finishTravel();
+}
+
 function retryCurrentLevelFromCheckpoint() {
+  state.pendingJourneyLevel = null;
   restoreLevelSnapshot();
   state.gameOver = false;
   state.questionIndex = 0;
@@ -1399,6 +1441,7 @@ function retryCurrentLevelFromCheckpoint() {
 function restartAdventure() {
   state.level = 1;
   state.selectedLevel = 1;
+  state.pendingJourneyLevel = null;
   state.score = 0;
   state.correctAnswers = 0;
   state.totalAttempts = 0;
@@ -1423,6 +1466,7 @@ function runButtonAction(actionId) {
     openMapButton: openMap,
     backToHubButton: () => showScreen(elements.startScreen),
     enterLevelButton: beginLevelFromMap,
+    journeyAdvanceButton: advanceJourneyFromMap,
     returnToMapButton: openMap,
     restartButton: restartAdventure,
     kidsModeButton: () => setMode("kids"),
@@ -1573,7 +1617,7 @@ async function loadMapSceneFactory() {
   }
 
   if (!state.mapSceneLoader) {
-    state.mapSceneLoader = import("./map-scene.js?v=20260423c")
+    state.mapSceneLoader = import("./map-scene.js?v=20260423d")
       .then((module) => module?.createMapScene || window.MultiplicationSprintMapScene?.createMapScene || null)
       .catch((error) => {
         console.error("Map scene module failed to load:", error);
@@ -1619,6 +1663,63 @@ async function hydrateMapScene3D() {
   } catch (error) {
     console.error("Echec de l'hydratation 3D, repli sur la carte DOM :", error);
     return false;
+  }
+}
+
+function updateSelectedLevelCard() {
+  const levelData = MAP_LEVELS[state.selectedLevel - 1];
+  if (!levelData) {
+    return;
+  }
+
+  const biomeNames = {
+    prairie: "Prairies",
+    forest: "Foret",
+    desert: "Desert",
+    cliffs: "Falaises",
+    isles: "Iles"
+  };
+  elements.selectedLevelLabel.textContent = `Niveau ${state.selectedLevel} - ${levelData.title}`;
+  elements.selectedLevelDescription.textContent = `${biomeNames[levelData.biome] || "Monde"} - ${levelData.description}`;
+  elements.enterLevelButton.textContent = levelData.boss ? "Entrer dans le boss" : "Entrer dans le niveau";
+  elements.enterLevelButton.disabled = state.selectedLevel > state.highestUnlockedLevel;
+  updateJourneyGuide();
+}
+
+function updateJourneyGuide() {
+  if (!elements.journeyGuide || !elements.journeyAdvanceButton) {
+    return;
+  }
+
+  const nextLevel = state.pendingJourneyLevel && state.pendingJourneyLevel <= state.highestUnlockedLevel
+    ? state.pendingJourneyLevel
+    : state.selectedLevel + 1;
+  const canAdvance = nextLevel <= state.highestUnlockedLevel && state.selectedLevel < nextLevel;
+  const isFinal = state.selectedLevel >= TOTAL_LEVELS;
+  const lockedNext = !isFinal && nextLevel > state.highestUnlockedLevel;
+  const selectedData = MAP_LEVELS[state.selectedLevel - 1];
+  const nextData = MAP_LEVELS[Math.min(nextLevel, TOTAL_LEVELS) - 1];
+
+  elements.journeyGuide.classList.toggle("journey-guide-ready", canAdvance);
+  elements.journeyGuide.classList.toggle("journey-guide-locked", lockedNext);
+  elements.journeyGuide.classList.toggle("journey-guide-final", isFinal);
+  elements.journeyAdvanceButton.disabled = !canAdvance;
+  elements.journeyAdvanceButton.hidden = isFinal;
+
+  if (canAdvance) {
+    elements.journeyGuideEyebrow.textContent = "Portail ouvert";
+    elements.journeyGuideTitle.textContent = `Niveau ${nextLevel} debloque`;
+    elements.journeyGuideText.textContent = `Clique ici pour faire avancer ${state.profileName} vers ${nextData?.title || "la zone suivante"}.`;
+    elements.journeyAdvanceButton.textContent = `Avancer vers le niveau ${nextLevel}`;
+  } else if (isFinal) {
+    elements.journeyGuideEyebrow.textContent = "Chateau final";
+    elements.journeyGuideTitle.textContent = "Derniere zone atteinte";
+    elements.journeyGuideText.textContent = "Entre dans le boss final ou rejoue les zones pour gagner plus d'etoiles.";
+  } else {
+    elements.journeyGuideEyebrow.textContent = "Chemin bloque";
+    elements.journeyGuideTitle.textContent = `Niveau ${state.selectedLevel} selectionne`;
+    elements.journeyGuideText.textContent = `${selectedData?.title || "Zone actuelle"} : reussis ce niveau pour allumer le portail suivant.`;
+    elements.journeyAdvanceButton.textContent = `Niveau ${nextLevel} verrouille`;
   }
 }
 
@@ -1778,6 +1879,7 @@ function bootApp() {
 window.persistProfiles = persistProfiles;
 window.showCheckpoint = showCheckpoint;
 window.selectMapLevel = selectMapLevel;
+window.advanceJourneyLevel = advanceJourneyFromMap;
 window.state = state;
 
 bootApp();

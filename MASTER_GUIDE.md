@@ -525,3 +525,26 @@ Limite assumee :
 
 - cette premiere version ne remplace pas encore des assets d'artiste professionnels ou des skyboxes 360 generes
 - pour un rendu vraiment commercial, il faudra ensuite integrer des skyboxes/panoramas 360 ou des packs 3D stylises coherents
+
+### Passe UX : progression 3D explicite
+
+Probleme observe apres la premiere version immersive :
+
+- le clic dans le paysage etait trop implicite
+- l'utilisateur ne savait pas clairement ou appuyer pour faire avancer le heros
+- le decor pouvait changer sans intention suffisamment lisible
+
+Correctif applique le 23 avril 2026 :
+
+- ajout d'un panneau flottant `Chemin d'aventure` au-dessus de la scene
+- ajout d'un bouton explicite `Avancer vers le niveau X`
+- apres validation d'un niveau, le joueur reste sur le paysage du niveau termine jusqu'a ce qu'il choisisse d'avancer
+- le portail du niveau suivant pulse dans Three.js quand il est debloque
+- le personnage joue une animation de voyage avant le changement de decor
+- les clics sur la scene appellent maintenant la meme action que le bouton visible, au lieu de cacher une logique dans des zones invisibles
+
+Decision de game design :
+
+- une scene 3D peut enrichir la progression, mais l'action principale doit toujours etre visible, nommee et facile a toucher sur mobile
+- la technologie actuelle `Three.js + DOM overlay` reste suffisante pour cette passe, car le probleme etait d'abord UX et integration, pas moteur 3D
+- pour viser un rendu reellement commercial, la prochaine marche doit etre l'integration d'assets externes coherents : personnage GLB anime, skyboxes 360, decors stylises et effets optimises mobile

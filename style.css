@@ -1249,6 +1249,103 @@ body.screen-shake .game-frame {
   filter: saturate(1.08) contrast(1.04);
 }
 
+.journey-guide {
+  position: absolute;
+  left: clamp(16px, 4vw, 38px);
+  right: clamp(16px, 4vw, 38px);
+  bottom: clamp(16px, 4vw, 34px);
+  z-index: 12;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 16px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 244, 206, 0.86)),
+    radial-gradient(circle at 8% 20%, rgba(255, 211, 87, 0.36), transparent 34%);
+  box-shadow: 0 22px 55px rgba(6, 14, 48, 0.28);
+  color: #19245d;
+  pointer-events: auto;
+}
+
+.journey-eyebrow {
+  display: inline-flex;
+  width: max-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(31, 111, 255, 0.12);
+  color: #1f6fff;
+  font-family: "Fredoka", sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.journey-guide strong {
+  display: block;
+  font-family: "Fredoka", sans-serif;
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+}
+
+.journey-guide p {
+  grid-column: 1 / 2;
+  margin: 0;
+  color: rgba(25, 36, 93, 0.76);
+}
+
+.journey-advance-button {
+  grid-row: 1 / span 3;
+  grid-column: 2;
+  min-width: 190px;
+  min-height: 56px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffcf4d, #ff704f);
+  color: #2b1740;
+  font-family: "Fredoka", sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  box-shadow: 0 14px 0 rgba(143, 57, 46, 0.24), 0 22px 40px rgba(255, 112, 79, 0.32);
+  cursor: pointer;
+  transform: translateY(0);
+  animation: journeyPulse 1.45s ease-in-out infinite;
+}
+
+.journey-advance-button:disabled {
+  background: linear-gradient(135deg, #d8deec, #aeb8d0);
+  color: rgba(25, 36, 93, 0.56);
+  box-shadow: none;
+  cursor: not-allowed;
+  animation: none;
+}
+
+.journey-guide-ready {
+  outline: 3px solid rgba(255, 211, 87, 0.5);
+}
+
+.journey-guide-ready::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  z-index: -1;
+  border-radius: 34px;
+  background: radial-gradient(circle at 82% 50%, rgba(255, 210, 78, 0.42), transparent 54%);
+  filter: blur(2px);
+  animation: journeyGlow 1.8s ease-in-out infinite;
+}
+
+@keyframes journeyPulse {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.025); }
+}
+
+@keyframes journeyGlow {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
 .world-map.journey-3d-ready .world-backdrop,
 .world-map.journey-3d-ready .map-sun,
 .world-map.journey-3d-ready .atlas-corner,
@@ -1297,6 +1394,23 @@ body.screen-shake .game-frame {
 @media (max-width: 820px) {
   .world-map.journey-3d-ready {
     min-height: 620px;
+  }
+
+  .journey-guide {
+    grid-template-columns: 1fr;
+    bottom: 12px;
+    padding: 14px;
+  }
+
+  .journey-guide p,
+  .journey-advance-button {
+    grid-column: 1;
+  }
+
+  .journey-advance-button {
+    grid-row: auto;
+    width: 100%;
+    min-width: 0;
   }
 }
 
