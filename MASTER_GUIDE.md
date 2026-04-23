@@ -642,3 +642,40 @@ Integration appliquee :
 - les animations `idle`, `walk` et `emote-yes` pilotent maintenant l'etat du personnage sur la carte
 - l'echelle, l'orientation et le centrage du personnage sont normalises pour la camera existante
 - la `colormap.png` du pack est maintenant prise en compte dans le cache PWA
+
+### Decision architecture : React + React Three Fiber
+
+Audit reel au 23 avril 2026 :
+
+- le projet fonctionne aujourd'hui autour d'un noyau `HTML + CSS + JavaScript + Three.js`
+- la logique metier, les profils, la progression, les checkpoints et les ecrans restent fortement centralises dans `script.js`
+- la scene 3D est deja isolee dans `map-scene.js`, ce qui donne un point d'entree clair pour enrichir le rendu sans migrer tout le produit d'un coup
+- `React + React Three Fiber` pourrait devenir pertinent plus tard, mais pas comme migration front totale immediate
+
+Decision retenue :
+
+- ne pas migrer maintenant vers `React + React Three Fiber`
+- conserver la stack actuelle comme meilleure option realiste a court terme
+- continuer a modulariser la scene et a renforcer la qualite percue dans `map-scene.js`
+- ne considerer une migration React qu'apres une vraie decomposition de `script.js` en modules fonctionnels stables
+
+Raison principale :
+
+- une migration totale immediate ferait peser un risque trop fort sur la robustesse mobile, la PWA, Render et les flux critiques deja stabilises
+
+### Passe premium Three.js sans migration React
+
+Correctif et evolution appliques apres cet audit :
+
+- ajout d'une qualite de scene adaptative selon la largeur d'ecran, la memoire, les coeurs CPU et `prefers-reduced-motion`
+- ajout d'horizons et de silhouettes lointaines par biome pour sortir d'une simple impression de plateau central
+- ajout de premier plan decoratif par biome pour mieux encadrer le personnage et donner de la profondeur
+- camera de repos differenciee selon les zones pour renforcer la sensation de voyage
+- travelling de transition plus vivant lors du passage vers une nouvelle zone
+- integration corrigee du prop `star.glb` dans la table de chargement de la scene
+
+Resultat produit :
+
+- la scene garde de bonnes performances sur mobile moyen
+- l'effet de paysage immersif progresse sans casser la logique DOM/PWA existante
+- la trajectoire vers une refonte plus ambitieuse reste ouverte, sans payer le cout d'une migration React prematuree

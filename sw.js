@@ -1,11 +1,11 @@
-const CACHE_NAME = "multiplication-sprint-v25-character-hero-glb";
+const CACHE_NAME = "multiplication-sprint-v26-premium-three-pass";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css?v=20260423g",
   "./animations-enhanced.css?v=20260421c",
-  "./script.js?v=20260423g",
-  "./map-scene.js?v=20260423g",
+  "./script.js?v=20260423h",
+  "./map-scene.js?v=20260423h",
   "./node_modules/three/build/three.module.js",
   "./node_modules/three/examples/jsm/loaders/GLTFLoader.js",
   "./api-sync.js",

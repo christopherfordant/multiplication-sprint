@@ -2,16 +2,16 @@ import * as THREE from "./node_modules/three/build/three.module.js";
 import { GLTFLoader } from "./node_modules/three/examples/jsm/loaders/GLTFLoader.js";
 
 const LEVELS = [
-  { biome: "prairie", title: "Village des prairies", color: 0x75d96b, sky: 0x8edbff, accent: 0xffd76a, locked: 0x61708f },
-  { biome: "prairie", title: "Moulin dore", color: 0x8de36d, sky: 0x8edbff, accent: 0xffc35c, locked: 0x61708f },
-  { biome: "forest", title: "Pont des lanternes", color: 0x2f9e63, sky: 0x6fc8d8, accent: 0x9dffb8, locked: 0x445b65 },
-  { biome: "forest", title: "Foret magique", color: 0x238557, sky: 0x5fb7cf, accent: 0x8fffd2, locked: 0x445b65 },
-  { biome: "desert", title: "Ruines dorees", color: 0xe8b95a, sky: 0xffca7a, accent: 0xffe299, locked: 0x8e6d55 },
-  { biome: "desert", title: "Camp du canyon", color: 0xd79b4e, sky: 0xffb76d, accent: 0xffd061, locked: 0x8e6d55 },
-  { biome: "cliffs", title: "Falaises du veilleur", color: 0x7fb7a4, sky: 0xa9d7ff, accent: 0xc7e8ff, locked: 0x667982 },
-  { biome: "cliffs", title: "Tour de braise", color: 0x6b8f88, sky: 0x93bfe4, accent: 0xff9874, locked: 0x667982 },
-  { biome: "isles", title: "Iles du dragon", color: 0x429dd6, sky: 0x74c6ff, accent: 0xff8b5a, locked: 0x4d6d86 },
-  { biome: "castle", title: "Chateau du boss", color: 0x5d5f83, sky: 0x5b6ca8, accent: 0xff6d4a, locked: 0x4b4f69 }
+  { biome: "prairie", title: "Village des prairies", color: 0x75d96b, sky: 0x8edbff, accent: 0xffd76a, locked: 0x61708f, fog: 0x9ae7ff, horizon: 0x6fc36d, ridge: 0x5aa64d, path: 0xf0d49a, camera: { x: -0.18, y: 2.35, z: 7.35 }, pointerScale: 1.08 },
+  { biome: "prairie", title: "Moulin dore", color: 0x8de36d, sky: 0x8edbff, accent: 0xffc35c, locked: 0x61708f, fog: 0xb3edff, horizon: 0x84d168, ridge: 0x5ca84d, path: 0xf5d490, camera: { x: 0.12, y: 2.25, z: 7.1 }, pointerScale: 1.06 },
+  { biome: "forest", title: "Pont des lanternes", color: 0x2f9e63, sky: 0x6fc8d8, accent: 0x9dffb8, locked: 0x445b65, fog: 0x78d6cf, horizon: 0x226f47, ridge: 0x163f30, path: 0xe4cf9e, camera: { x: -0.26, y: 2.45, z: 7.45 }, pointerScale: 1.02 },
+  { biome: "forest", title: "Foret magique", color: 0x238557, sky: 0x5fb7cf, accent: 0x8fffd2, locked: 0x445b65, fog: 0x5bc3c9, horizon: 0x195d3c, ridge: 0x113324, path: 0xe0c38e, camera: { x: 0.18, y: 2.4, z: 7.3 }, pointerScale: 0.98 },
+  { biome: "desert", title: "Ruines dorees", color: 0xe8b95a, sky: 0xffca7a, accent: 0xffe299, locked: 0x8e6d55, fog: 0xffd596, horizon: 0xd49653, ridge: 0xa56e39, path: 0xffe0a7, camera: { x: -0.22, y: 2.3, z: 7.25 }, pointerScale: 0.94 },
+  { biome: "desert", title: "Camp du canyon", color: 0xd79b4e, sky: 0xffb76d, accent: 0xffd061, locked: 0x8e6d55, fog: 0xffc67d, horizon: 0xbf7e40, ridge: 0x8b562e, path: 0xf6d18e, camera: { x: 0.25, y: 2.35, z: 7.15 }, pointerScale: 0.92 },
+  { biome: "cliffs", title: "Falaises du veilleur", color: 0x7fb7a4, sky: 0xa9d7ff, accent: 0xc7e8ff, locked: 0x667982, fog: 0xb6def7, horizon: 0x6a8585, ridge: 0x495d63, path: 0xd9c8a8, camera: { x: -0.32, y: 2.56, z: 7.55 }, pointerScale: 0.98 },
+  { biome: "cliffs", title: "Tour de braise", color: 0x6b8f88, sky: 0x93bfe4, accent: 0xff9874, locked: 0x667982, fog: 0xa7c8e4, horizon: 0x6c6f82, ridge: 0x474b59, path: 0xc9b39c, camera: { x: 0.34, y: 2.48, z: 7.4 }, pointerScale: 0.96 },
+  { biome: "isles", title: "Iles du dragon", color: 0x429dd6, sky: 0x74c6ff, accent: 0xff8b5a, locked: 0x4d6d86, fog: 0x7bd3ff, horizon: 0x35638a, ridge: 0x472f2d, path: 0xe6ca9f, camera: { x: -0.16, y: 2.42, z: 7.25 }, pointerScale: 0.9 },
+  { biome: "castle", title: "Chateau du boss", color: 0x5d5f83, sky: 0x5b6ca8, accent: 0xff6d4a, locked: 0x4b4f69, fog: 0x7988bb, horizon: 0x403f61, ridge: 0x241d2e, path: 0xc9ae8b, camera: { x: 0, y: 2.7, z: 7.8 }, pointerScale: 0.88 }
 ];
 
 const GATE_SPACING = 4.8;
@@ -37,8 +37,27 @@ const WORLD_MODEL_URLS = {
   fenceRope: new URL("./assets/fourtout/GLB%20format/fence-rope.glb", import.meta.url).href,
   flag: new URL("./assets/fourtout/GLB%20format/flag.glb", import.meta.url).href,
   chest: new URL("./assets/fourtout/GLB%20format/chest.glb", import.meta.url).href,
-  doorLargeOpen: new URL("./assets/fourtout/GLB%20format/door-large-open.glb", import.meta.url).href
+  doorLargeOpen: new URL("./assets/fourtout/GLB%20format/door-large-open.glb", import.meta.url).href,
+  star: new URL("./assets/fourtout/GLB%20format/star.glb", import.meta.url).href
 };
+
+function detectSceneQuality(reducedMotion) {
+  const width = typeof window !== "undefined" ? window.innerWidth : 1280;
+  const memory = typeof navigator !== "undefined" ? navigator.deviceMemory || 4 : 4;
+  const cores = typeof navigator !== "undefined" ? navigator.hardwareConcurrency || 4 : 4;
+  const lowPower = reducedMotion || width < 700 || memory <= 4 || cores <= 4;
+  const medium = !lowPower && (width < 1100 || memory <= 8 || cores <= 8);
+
+  return {
+    tier: lowPower ? "low" : (medium ? "medium" : "high"),
+    pixelRatio: lowPower ? 1.05 : (medium ? 1.25 : 1.5),
+    clouds: lowPower ? 4 : (medium ? 7 : 11),
+    particles: lowPower ? 12 : (medium ? 22 : 34),
+    confetti: lowPower ? 24 : (medium ? 32 : 42),
+    horizonLayers: lowPower ? 3 : (medium ? 4 : 6),
+    pointerAmplitude: lowPower ? 0.72 : 1
+  };
+}
 
 function buildRadialTexture(inner, outer, size = 256) {
   const canvas = document.createElement("canvas");
@@ -414,6 +433,130 @@ function createCastle() {
   return group;
 }
 
+function createMesa(x, z, width, height, depth, color) {
+  const mesa = new THREE.Mesh(
+    new THREE.CylinderGeometry(width * 0.52, width * 0.72, height, 7),
+    makeMat(color, 0.84, 0.02)
+  );
+  mesa.position.set(x, height * 0.45, z);
+  mesa.scale.z = depth;
+  return mesa;
+}
+
+function createBackdropLandscape(level, quality) {
+  const group = new THREE.Group();
+  const layerCount = quality.horizonLayers;
+  const baseColor = new THREE.Color(level.horizon);
+  const ridgeColor = new THREE.Color(level.ridge);
+
+  for (let index = 0; index < layerCount; index += 1) {
+    const mix = index / Math.max(1, layerCount - 1);
+    const color = baseColor.clone().lerp(ridgeColor, mix * 0.72);
+    const z = -7.2 - index * 1.2;
+    const y = 0.12 + index * 0.08;
+    const width = 13 + index * 1.4;
+    const height = 1.1 + (index % 2) * 0.4 + mix * 1.1;
+    const silhouette = new THREE.Mesh(
+      new THREE.CylinderGeometry(width * 0.38, width * 0.55, height, 9 + index),
+      makeMat(color.getHex(), 0.92, 0.01)
+    );
+    silhouette.position.set((index - (layerCount - 1) / 2) * 1.35, y + height * 0.24, z);
+    silhouette.scale.z = 0.44 + mix * 0.18;
+    group.add(silhouette);
+  }
+
+  if (level.biome === "prairie") {
+    const hillLeft = new THREE.Mesh(new THREE.SphereGeometry(2.3, 20, 14), makeMat(0x7fd86d, 0.9, 0.01));
+    hillLeft.position.set(-4.8, 1.1, -6.8);
+    hillLeft.scale.set(1.4, 0.42, 0.7);
+    const hillRight = hillLeft.clone();
+    hillRight.position.set(4.7, 0.95, -7.5);
+    hillRight.scale.set(1.55, 0.36, 0.72);
+    group.add(hillLeft, hillRight);
+  } else if (level.biome === "forest") {
+    for (let index = 0; index < 9; index += 1) {
+      const pine = new THREE.Mesh(new THREE.ConeGeometry(0.45 + (index % 2) * 0.08, 1.35 + (index % 3) * 0.18, 7), makeMat(0x214c33, 0.9, 0.01));
+      pine.position.set(-5.4 + index * 1.3, 1.1 + (index % 2) * 0.12, -6.4 - (index % 3) * 0.2);
+      group.add(pine);
+    }
+  } else if (level.biome === "desert") {
+    const duneOne = new THREE.Mesh(new THREE.SphereGeometry(3.8, 22, 12), makeMat(0xe5b063, 0.92, 0.01));
+    duneOne.position.set(-3.5, 0.44, -6.3);
+    duneOne.scale.set(1.4, 0.18, 0.55);
+    const duneTwo = duneOne.clone();
+    duneTwo.position.set(3.8, 0.38, -7.2);
+    duneTwo.scale.set(1.6, 0.14, 0.6);
+    group.add(duneOne, duneTwo, createMesa(0.8, -7.6, 1.8, 1.9, 0.72, 0xbf7c44));
+  } else if (level.biome === "cliffs") {
+    group.add(
+      createMesa(-4.8, -6.8, 2.2, 2.3, 0.82, 0x788995),
+      createMesa(-1.4, -7.2, 1.6, 2.8, 0.62, 0x6b7b87),
+      createMesa(3.1, -7.6, 2.4, 2.5, 0.76, 0x66707f)
+    );
+  } else {
+    const volcano = new THREE.Mesh(new THREE.ConeGeometry(1.55, 2.8, 10), makeMat(level.biome === "castle" ? 0x3e3856 : 0x604342, 0.88, 0.01));
+    volcano.position.set(4.2, 1.3, -7.1);
+    const craterGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: buildRadialTexture("rgba(255,145,94,1)", "rgba(255,145,94,0)"),
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.45,
+      color: level.accent
+    }));
+    craterGlow.position.set(4.2, 2.7, -7.1);
+    craterGlow.scale.set(2.6, 2.6, 1);
+    group.add(volcano, craterGlow);
+  }
+
+  return group;
+}
+
+function createForegroundSet(level) {
+  const group = new THREE.Group();
+
+  if (level.biome === "prairie") {
+    const tuftLeft = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 12), makeMat(0x54bd61, 0.9, 0.01));
+    tuftLeft.position.set(-4.8, 0.28, 1.35);
+    tuftLeft.scale.set(1.1, 0.26, 0.78);
+    const tuftRight = tuftLeft.clone();
+    tuftRight.position.set(4.6, 0.22, 1.05);
+    group.add(tuftLeft, tuftRight);
+  } else if (level.biome === "forest") {
+    const bushLeft = new THREE.Mesh(new THREE.DodecahedronGeometry(0.85, 0), makeMat(0x2f7d47, 0.88, 0.01));
+    bushLeft.position.set(-4.5, 0.6, 1.2);
+    const bushRight = bushLeft.clone();
+    bushRight.position.set(4.2, 0.54, 0.9);
+    group.add(bushLeft, bushRight);
+  } else if (level.biome === "desert") {
+    const dune = new THREE.Mesh(new THREE.SphereGeometry(2.2, 18, 10), makeMat(0xe0ae62, 0.92, 0.01));
+    dune.position.set(4.8, 0.2, 1.2);
+    dune.scale.set(0.8, 0.12, 0.42);
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.52, 0), makeMat(0x8e5f33, 0.9, 0.01));
+    rock.position.set(-4.6, 0.34, 1.18);
+    group.add(dune, rock);
+  } else if (level.biome === "cliffs") {
+    group.add(
+      createMesa(-4.6, 1.2, 1.2, 1.25, 0.72, 0x70818d),
+      createMesa(4.7, 1.1, 1.4, 1.05, 0.62, 0x6a7581)
+    );
+  } else {
+    const lavaRock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7, 0), makeMat(0x4c3742, 0.92, 0.01));
+    lavaRock.position.set(-4.7, 0.42, 1.16);
+    const ember = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: buildRadialTexture("rgba(255,170,107,1)", "rgba(255,170,107,0)"),
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.36,
+      color: level.accent
+    }));
+    ember.position.set(4.6, 0.9, 1.18);
+    ember.scale.set(1.5, 1.5, 1);
+    group.add(lavaRock, ember);
+  }
+
+  return group;
+}
+
 function createPortal(index, level, selectedLevel, unlockedLevel, glowTexture) {
   const group = new THREE.Group();
   const isUnlocked = index + 1 <= unlockedLevel;
@@ -557,7 +700,7 @@ function createGround(level) {
   const path = new THREE.Mesh(
     new THREE.PlaneGeometry(3.1, 10.8),
     new THREE.MeshStandardMaterial({
-      color: level.biome === "desert" ? 0xf9d084 : 0xe8d19d,
+      color: level.path,
       map: painterlyPath,
       roughness: 0.72,
       metalness: 0.02
@@ -594,7 +737,7 @@ function createGround(level) {
   return group;
 }
 
-function createSky(level, glowTexture, reducedMotion) {
+function createSky(level, glowTexture, quality) {
   const group = new THREE.Group();
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(18, 32, 16),
@@ -625,7 +768,7 @@ function createSky(level, glowTexture, reducedMotion) {
   haze.scale.set(16, 8.8, 1);
   group.add(haze);
 
-  const cloudCount = reducedMotion ? 5 : 11;
+  const cloudCount = quality.clouds;
   for (let index = 0; index < cloudCount; index += 1) {
     const cloud = new THREE.Sprite(new THREE.SpriteMaterial({
       map: glowTexture,
@@ -644,8 +787,9 @@ function createSky(level, glowTexture, reducedMotion) {
 }
 
 export function createMapScene(mount, reducedMotion = false) {
+  const quality = detectSceneQuality(reducedMotion);
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality.pixelRatio));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setClearColor(0x000000, 0);
 
@@ -700,6 +844,7 @@ export function createMapScene(mount, reducedMotion = false) {
   let heroActions = new Map();
   let currentHeroAction = "";
   let previousTick = performance.now();
+  const cameraGoal = { x: 0, y: 2.15, z: 7.1 };
 
   function playHeroAction(actionName, fadeDuration = 0.22) {
     if (!heroMixer || !heroActions.size) {
@@ -754,10 +899,16 @@ export function createMapScene(mount, reducedMotion = false) {
     scene.remove(currentWorld);
     currentWorld = new THREE.Group();
     const level = LEVELS[selectedLevel - 1];
-    currentWorld.add(createSky(level, glowTexture, reducedMotion));
+    scene.fog = new THREE.FogExp2(level.fog, level.biome === "castle" ? 0.03 : 0.018);
+    currentWorld.add(createSky(level, glowTexture, quality));
+    currentWorld.add(createBackdropLandscape(level, quality));
     currentWorld.add(createGround(level));
     currentWorld.add(createBiomeSet(level, selectedLevel));
+    currentWorld.add(createForegroundSet(level));
     scene.add(currentWorld);
+    cameraGoal.x = level.camera?.x ?? 0;
+    cameraGoal.y = level.camera?.y ?? 2.15;
+    cameraGoal.z = level.camera?.z ?? 7.1;
 
     while (portals.children.length) {
       const portal = portals.children.pop();
@@ -772,7 +923,7 @@ export function createMapScene(mount, reducedMotion = false) {
       particle.material.dispose();
     }
     const level = LEVELS[selectedLevel - 1];
-    const count = reducedMotion ? 14 : 34;
+    const count = quality.particles;
     for (let index = 0; index < count; index += 1) {
       const particle = new THREE.Sprite(new THREE.SpriteMaterial({
         map: sparkleTexture,
@@ -810,7 +961,7 @@ export function createMapScene(mount, reducedMotion = false) {
       const child = confetti.children.pop();
       child.material.dispose();
     }
-    for (let index = 0; index < 38; index += 1) {
+    for (let index = 0; index < quality.confetti; index += 1) {
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
         map: sparkleTexture,
         transparent: true,
@@ -903,15 +1054,16 @@ export function createMapScene(mount, reducedMotion = false) {
       const progress = Math.min(1, (now - travel.start) / travel.duration);
       const eased = 1 - Math.pow(1 - progress, 3);
       heroAnchor.position.z = 1.2 - eased * 3.95;
-      heroAnchor.position.x = Math.sin(eased * Math.PI) * 0.28;
-      camera.position.z = 7.1 - eased * 1.25;
-      camera.position.y = 2.15 + Math.sin(eased * Math.PI) * 0.32;
+      heroAnchor.position.x = Math.sin(eased * Math.PI) * 0.38;
+      camera.position.z = cameraGoal.z - eased * 1.45;
+      camera.position.y = cameraGoal.y + Math.sin(eased * Math.PI) * 0.42;
+      camera.position.x = cameraGoal.x + Math.sin(eased * Math.PI * 1.15) * 0.42;
       if (progress >= 1) {
         const done = travel;
         travel = null;
         selectedLevel = done.to;
         heroAnchor.position.set(0, 0.02, 1.2);
-        camera.position.set(0, 2.15, 7.1);
+        camera.position.set(cameraGoal.x, cameraGoal.y, cameraGoal.z);
         updateSelection();
         done.resolve(true);
       }
@@ -975,9 +1127,10 @@ export function createMapScene(mount, reducedMotion = false) {
     }
 
     if (!travel) {
-      camera.position.x += (pointerX - camera.position.x) * 0.035;
-      camera.position.y += ((2.15 - pointerY) - camera.position.y) * 0.035;
-      camera.position.z += (7.1 - camera.position.z) * 0.035;
+      const pointerWeight = (LEVELS[selectedLevel - 1]?.pointerScale ?? 1) * quality.pointerAmplitude;
+      camera.position.x += ((cameraGoal.x + pointerX * pointerWeight) - camera.position.x) * 0.035;
+      camera.position.y += ((cameraGoal.y - pointerY * 0.65) - camera.position.y) * 0.035;
+      camera.position.z += (cameraGoal.z - camera.position.z) * 0.035;
     }
     camera.lookAt(0, 1.12, -2.6);
     renderer.render(scene, camera);

@@ -109,10 +109,25 @@ Mode Expert:
 - **HTML5** : Structure sémantique et formulaires accessibles
 - **CSS3** : Variables CSS, Flexbox/Grid, Animations, Media queries
 - **JavaScript** : Logique du jeu, gestion d'état, stockage local
+- **Three.js** : Scène 3D de progression immersive avec paysages stylisés et assets GLB
 - **GSAP 3** : Animations web fluides et performantes (via CDN)
 - **Web Audio API** : Sons générés procéduralement
 - **Web Speech API** : Lecture vocale des questions
 - **Service Worker** : Cache et fonctionnement offline (PWA)
+
+## 🧭 Décision d’architecture Avril 2026
+
+Une migration complète vers `React + React Three Fiber` n’a pas été retenue dans la passe actuelle.
+
+Pourquoi :
+- la logique métier stable est encore très centralisée dans `script.js`
+- une migration totale en une seule étape ferait courir un risque élevé aux profils, à la progression, à la PWA et au déploiement Render
+- la meilleure option réaliste pour ce projet aujourd’hui est de renforcer l’architecture existante `HTML/CSS/JS + Three.js`, puis de préparer éventuellement une migration plus tard par étapes
+
+Conséquence :
+- la scène 3D continue d’être enrichie dans `map-scene.js`
+- la logique de jeu reste stable
+- le projet reste responsive, PWA-compatible et prêt pour une évolution mobile plus tard
 
 ## 📱 Optimisations
 
@@ -193,6 +208,20 @@ Ce jeu peut être déployé gratuitement sur :
 - **GitHub Pages**
 - **Heroku**
 - Ton propre serveur
+
+## ▶️ Lancement recommandé
+
+Le projet tourne maintenant le plus proprement avec le serveur Node intégré :
+
+```bash
+npm start
+```
+
+Puis ouvre :
+
+```txt
+http://127.0.0.1:3000
+```
 
 ## 📝 Notes de développement
 
