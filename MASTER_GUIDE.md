@@ -616,3 +616,29 @@ Garantie de robustesse :
 - si les `GLB` ne chargent pas, la scene garde ses elements proceduraux
 - le service worker a ete mis a jour pour precacher les modeles utilises
 - la logique de progression, profils, score et checkpoint reste inchangee
+
+### Passe heros GLB sur la carte 3D
+
+Audit characters au 23 avril 2026 :
+
+- personnages disponibles : `character-oobi.glb`, `character-oodi.glb`, `character-ooli.glb`, `character-oopi.glb`, `character-oozi.glb`
+- les cinq personnages partagent une structure tres proche :
+  - `1` mesh principal
+  - `1` material
+  - `1` texture
+  - `25` animations integrees
+- animations disponibles : `idle`, `walk`, `sprint`, `jump`, `fall`, `emote-yes`, `emote-no`, `interact-*`, `attack-*`, etc.
+
+Decision de choix :
+
+- `character-oobi.glb` devient le heros principal de la carte
+- raison : c'est le plus lourd du lot, avec la meme richesse d'animations que les autres, donc le meilleur candidat par defaut pour un rendu un peu plus premium
+- plan B assume : si son look final en contexte n'est pas le plus convaincant, le meilleur suivant a tester est `character-oozi.glb`
+
+Integration appliquee :
+
+- le heros procedural reste le fallback de securite
+- le personnage `character-oobi.glb` prend le relais quand il est charge correctement
+- les animations `idle`, `walk` et `emote-yes` pilotent maintenant l'etat du personnage sur la carte
+- l'echelle, l'orientation et le centrage du personnage sont normalises pour la camera existante
+- la `colormap.png` du pack est maintenant prise en compte dans le cache PWA

@@ -16,10 +16,14 @@ const LEVELS = [
 
 const GATE_SPACING = 4.8;
 const PAINTERLY_TEXTURE_URL = "./assets/fourtout/textures/variation-a.png";
+const HERO_CHARACTER_KEY = "character-oobi";
+const HERO_CHARACTER_URL = new URL("./assets/fourtout/GLB%20format/character-oobi.glb", import.meta.url).href;
 let sharedPainterlyTexture = null;
 const gltfLoader = typeof window !== "undefined" ? new GLTFLoader() : null;
 const loadedModelScenes = new Map();
 const loadingModelPromises = new Map();
+let cachedHeroDefinition = null;
+let loadingHeroDefinition = null;
 
 const WORLD_MODEL_URLS = {
   tree: new URL("./assets/fourtout/GLB%20format/tree.glb", import.meta.url).href,
@@ -96,6 +100,101 @@ function prepareImportedScene(scene) {
   scene.position.y -= box.min.y;
 }
 
+function cloneSceneGraph(source) {
+  const clone = source.clone(true);
+  clone.traverse((child) => {
+    if (child.isMesh && child.material) {
+      if (Array.isArray(child.material)) {
+        child.material = child.material.map((material) => material.clone());
+      } else {
+        child.material = child.material.clone();
+      }
+    }
+  });
+  return clone;
+}
+
+function normalizeHeroCharacter(scene) {
+  const box = new THREE.Box3().setFromObject(scene);
+  const size = box.getSize(new THREE.Vector3());
+  const targetHeight = 1.9;
+  const scale = size.y > 0 ? targetHeight / size.y : 1;
+  scene.scale.setScalar(scale);
+
+  const scaledBox = new THREE.Box3().setFromObject(scene);
+  const center = scaledBox.getCenter(new THREE.Vector3());
+  scene.position.x -= center.x;
+  scene.position.z -= center.z;
+  scene.position.y -= scaledBox.min.y;
+  scene.rotation.y = Math.PI;
+  scene.userData.facingOffset = Math.PI;
+
+  scene.traverse((child) => {
+    if (child.isMesh) {
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach((material) => {
+        material.roughness = Math.min(1, (material.roughness ?? 0.8) + 0.08);
+        material.metalness = Math.min(material.metalness ?? 0, 0.06);
+      });
+    }
+  });
+}
+
+function loadHeroDefinition() {
+  if (cachedHeroDefinition) {
+    return Promise.resolve(cachedHeroDefinition);
+  }
+
+  if (loadingHeroDefinition) {
+    return loadingHeroDefinition;
+  }
+
+  if (!gltfLoader) {
+    return Promise.resolve(null);
+  }
+
+  loadingHeroDefinition = new Promise((resolve) => {
+    gltfLoader.load(
+      HERO_CHARACTER_URL,
+      (gltf) => {
+        const baseScene = gltf.scene || gltf.scenes?.[0] || null;
+        if (!baseScene) {
+          resolve(null);
+          return;
+        }
+
+        prepareImportedScene(baseScene);
+        cachedHeroDefinition = {
+          key: HERO_CHARACTER_KEY,
+          scene: baseScene,
+          animations: gltf.animations || []
+        };
+        resolve(cachedHeroDefinition);
+      },
+      undefined,
+      (error) => {
+        console.warn(`Hero model failed to load: ${HERO_CHARACTER_KEY}`, error);
+        resolve(null);
+      }
+    );
+  });
+
+  return loadingHeroDefinition;
+}
+
+function instantiateHeroCharacter() {
+  if (!cachedHeroDefinition?.scene) {
+    return null;
+  }
+
+  const scene = cloneSceneGraph(cachedHeroDefinition.scene);
+  normalizeHeroCharacter(scene);
+  return {
+    scene,
+    animations: cachedHeroDefinition.animations || []
+  };
+}
+
 function loadWorldModel(key) {
   if (loadedModelScenes.has(key)) {
     return Promise.resolve(loadedModelScenes.get(key));
@@ -134,6 +233,10 @@ function loadWorldModel(key) {
 
 function preloadWorldModels() {
   return Promise.all(Object.keys(WORLD_MODEL_URLS).map((key) => loadWorldModel(key)));
+}
+
+function preloadSceneAssets() {
+  return Promise.all([preloadWorldModels(), loadHeroDefinition()]);
 }
 
 function createModelProp(key, { x = 0, y = 0, z = 0, scale = 1, rotationY = 0 } = {}) {
@@ -261,7 +364,8 @@ function createHero() {
   hero.add(shadow);
 
   hero.scale.setScalar(0.92);
-  hero.position.set(0, 0.02, 1.2);
+  hero.position.set(0, 0, 0);
+  hero.userData.facingOffset = 0;
   return hero;
 }
 
@@ -565,8 +669,18 @@ export function createMapScene(mount, reducedMotion = false) {
 
   const glowTexture = buildRadialTexture("rgba(255,246,196,1)", "rgba(255,246,196,0)");
   const sparkleTexture = buildRadialTexture("rgba(255,255,255,1)", "rgba(255,255,255,0)");
-  const hero = createHero();
-  scene.add(hero);
+  const heroAnchor = new THREE.Group();
+  heroAnchor.position.set(0, 0.02, 1.2);
+  const heroShadow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.72, 32),
+    new THREE.MeshBasicMaterial({ color: 0x111a38, transparent: true, opacity: 0.18 })
+  );
+  heroShadow.rotation.x = -Math.PI / 2;
+  heroShadow.position.y = 0.02;
+  scene.add(heroAnchor, heroShadow);
+  let hero = createHero();
+  hero.userData.isProceduralHero = true;
+  heroAnchor.add(hero);
 
   const portals = new THREE.Group();
   const particles = new THREE.Group();
@@ -582,6 +696,58 @@ export function createMapScene(mount, reducedMotion = false) {
   let heroState = "idle";
   let walkUntil = 0;
   let travel = null;
+  let heroMixer = null;
+  let heroActions = new Map();
+  let currentHeroAction = "";
+  let previousTick = performance.now();
+
+  function playHeroAction(actionName, fadeDuration = 0.22) {
+    if (!heroMixer || !heroActions.size) {
+      currentHeroAction = actionName;
+      return;
+    }
+
+    const nextAction = heroActions.get(actionName) || heroActions.get("idle") || heroActions.values().next().value;
+    if (!nextAction || currentHeroAction === actionName) {
+      return;
+    }
+
+    heroActions.forEach((action, key) => {
+      if (action === nextAction) {
+        action.reset();
+        action.enabled = true;
+        action.setEffectiveTimeScale(1);
+        action.setEffectiveWeight(1);
+        action.fadeIn(fadeDuration).play();
+      } else if (key === currentHeroAction) {
+        action.fadeOut(fadeDuration);
+      }
+    });
+    currentHeroAction = actionName;
+  }
+
+  function replaceHeroVisual(nextHero, animations = []) {
+    if (hero) {
+      heroAnchor.remove(hero);
+    }
+
+    hero = nextHero;
+    heroAnchor.add(hero);
+
+    heroMixer = null;
+    heroActions = new Map();
+    currentHeroAction = "";
+
+    if (animations.length) {
+      heroMixer = new THREE.AnimationMixer(hero);
+      animations.forEach((clip) => {
+        heroActions.set(clip.name, heroMixer.clipAction(clip));
+      });
+    }
+
+    const targetState = heroState === "walk" ? "walk" : (heroState === "victory" ? "victory" : "idle");
+    playHeroAction(targetState === "victory" ? "emote-yes" : targetState);
+  }
 
   function rebuildWorld() {
     disposeObject(currentWorld);
@@ -664,6 +830,7 @@ export function createMapScene(mount, reducedMotion = false) {
     unlockedLevel = Math.max(unlockedLevel, levelIndex);
     walkUntil = performance.now() + 1200;
     heroState = "walk";
+    playHeroAction("walk");
     updateSelection();
   }
 
@@ -682,6 +849,7 @@ export function createMapScene(mount, reducedMotion = false) {
         resolve
       };
       heroState = "walk";
+      playHeroAction("walk");
       walkUntil = performance.now() + travel.duration + 240;
     });
   }
@@ -689,6 +857,7 @@ export function createMapScene(mount, reducedMotion = false) {
   function playWaveAnimation() {
     walkUntil = performance.now() + 900;
     heroState = "victory";
+    playHeroAction("emote-yes");
   }
 
   function onPointerMove(event) {
@@ -717,37 +886,54 @@ export function createMapScene(mount, reducedMotion = false) {
   function animate() {
     const now = performance.now();
     const time = now * 0.001;
+    const delta = Math.min(0.05, (now - previousTick) / 1000);
+    previousTick = now;
     const walking = heroState === "walk" && now < walkUntil;
     const celebrating = heroState === "victory" && now < walkUntil;
-    if (!walking && !celebrating) heroState = "idle";
+    if (!walking && !celebrating) {
+      heroState = "idle";
+      playHeroAction("idle");
+    } else if (walking) {
+      playHeroAction("walk");
+    } else if (celebrating) {
+      playHeroAction("emote-yes");
+    }
 
     if (travel) {
       const progress = Math.min(1, (now - travel.start) / travel.duration);
       const eased = 1 - Math.pow(1 - progress, 3);
-      hero.position.z = 1.2 - eased * 3.95;
-      hero.position.x = Math.sin(eased * Math.PI) * 0.28;
+      heroAnchor.position.z = 1.2 - eased * 3.95;
+      heroAnchor.position.x = Math.sin(eased * Math.PI) * 0.28;
       camera.position.z = 7.1 - eased * 1.25;
       camera.position.y = 2.15 + Math.sin(eased * Math.PI) * 0.32;
       if (progress >= 1) {
         const done = travel;
         travel = null;
         selectedLevel = done.to;
-        hero.position.set(0, 0.02, 1.2);
+        heroAnchor.position.set(0, 0.02, 1.2);
         camera.position.set(0, 2.15, 7.1);
         updateSelection();
         done.resolve(true);
       }
     }
 
-    hero.position.y = 0.02 + Math.sin(time * (walking ? 8 : 2.1)) * (walking ? 0.055 : 0.018);
-    hero.rotation.y += (((travel ? 0 : pointerX) * 0.45) - hero.rotation.y) * 0.06;
-    hero.children.forEach((child, index) => {
-      if (child.geometry?.type === "CapsuleGeometry" && index > 8) {
-        child.rotation.x = walking ? Math.sin(time * 9 + index) * 0.16 : 0;
-      }
-    });
-    if (celebrating) hero.rotation.z = Math.sin(time * 8) * 0.06;
-    else hero.rotation.z *= 0.92;
+    heroAnchor.position.y = 0.02 + Math.sin(time * (walking ? 8 : 2.1)) * (walking ? 0.055 : 0.018);
+    heroShadow.position.x = heroAnchor.position.x;
+    heroShadow.position.z = heroAnchor.position.z;
+    heroShadow.material.opacity = 0.14 + Math.abs(Math.sin(time * 2.1)) * 0.06;
+    const facingOffset = hero.userData?.facingOffset ?? 0;
+    heroAnchor.rotation.y += ((((travel ? 0 : pointerX) * 0.45) + facingOffset) - heroAnchor.rotation.y) * 0.06;
+    if (hero.userData?.isProceduralHero) {
+      hero.children.forEach((child, index) => {
+        if (child.geometry?.type === "CapsuleGeometry" && index > 8) {
+          child.rotation.x = walking ? Math.sin(time * 9 + index) * 0.16 : 0;
+        }
+      });
+    }
+    if (celebrating) heroAnchor.rotation.z = Math.sin(time * 8) * 0.06;
+    else heroAnchor.rotation.z *= 0.92;
+
+    heroMixer?.update(delta);
 
     currentWorld.children.forEach((child) => {
       child.children?.forEach((item) => {
@@ -801,7 +987,13 @@ export function createMapScene(mount, reducedMotion = false) {
   updateSelection();
   resize();
   animate();
-  preloadWorldModels().then(() => {
+  loadHeroDefinition().then((definition) => {
+    const heroInstance = definition ? instantiateHeroCharacter() : null;
+    if (heroInstance?.scene) {
+      replaceHeroVisual(heroInstance.scene, heroInstance.animations);
+    }
+  });
+  preloadSceneAssets().then(() => {
     updateSelection();
   });
   window.addEventListener("resize", resize);
@@ -832,6 +1024,7 @@ export function createMapScene(mount, reducedMotion = false) {
       mount.removeEventListener("pointermove", onPointerMove);
       mount.removeEventListener("pointerleave", onPointerLeave);
       mount.removeEventListener("click", onClick);
+      heroMixer?.stopAllAction();
       worldMap?.classList.remove("journey-3d-ready");
       disposeObject(scene);
       renderer.dispose();

@@ -545,7 +545,7 @@ async function loadMapSceneFactory() {
   }
 
   if (!state.mapSceneLoader) {
-    state.mapSceneLoader = import("./map-scene.js?v=20260423f")
+    state.mapSceneLoader = import("./map-scene.js?v=20260423g")
       .then(() => window.MultiplicationSprintMapScene?.createMapScene || null)
       .catch((error) => {
         console.error("Map scene module failed to load:", error);
@@ -1617,7 +1617,7 @@ async function loadMapSceneFactory() {
   }
 
   if (!state.mapSceneLoader) {
-    state.mapSceneLoader = import("./map-scene.js?v=20260423f")
+    state.mapSceneLoader = import("./map-scene.js?v=20260423g")
       .then((module) => module?.createMapScene || window.MultiplicationSprintMapScene?.createMapScene || null)
       .catch((error) => {
         console.error("Map scene module failed to load:", error);

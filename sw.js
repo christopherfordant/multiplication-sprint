@@ -1,11 +1,11 @@
-const CACHE_NAME = "multiplication-sprint-v24-fourtout-world-models";
+const CACHE_NAME = "multiplication-sprint-v25-character-hero-glb";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=20260423f",
+  "./style.css?v=20260423g",
   "./animations-enhanced.css?v=20260421c",
-  "./script.js?v=20260423f",
-  "./map-scene.js?v=20260423f",
+  "./script.js?v=20260423g",
+  "./map-scene.js?v=20260423g",
   "./node_modules/three/build/three.module.js",
   "./node_modules/three/examples/jsm/loaders/GLTFLoader.js",
   "./api-sync.js",
@@ -13,6 +13,7 @@ const APP_SHELL = [
   "./assets/world/world-map-premium-v1.png",
   "./assets/characters/hero-mascot-premium-v2.png",
   "./assets/fourtout/textures/variation-a.png",
+  "./assets/fourtout/GLB%20format/character-oobi.glb",
   "./assets/fourtout/GLB%20format/tree.glb",
   "./assets/fourtout/GLB%20format/tree-pine.glb",
   "./assets/fourtout/GLB%20format/rocks.glb",
@@ -26,6 +27,7 @@ const APP_SHELL = [
   "./assets/fourtout/GLB%20format/chest.glb",
   "./assets/fourtout/GLB%20format/door-large-open.glb",
   "./assets/fourtout/GLB%20format/star.glb",
+  "./assets/fourtout/GLB%20format/Textures/colormap.png",
   "./manifest.webmanifest",
   "./favicon.svg",
   "./icon-192.svg",
