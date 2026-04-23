@@ -502,3 +502,26 @@ Correctif applique :
 - renforcement de la hierarchie des cases de niveau, des labels de biome, des etoiles et de l'etat selectionne
 - ajout de halos de biomes et d'un leger effet de parallaxe dans `map-scene.js`
 - maintien du principe de stabilite : la carte DOM reste la couche interactive principale, la 3D reste une couche d'ambiance
+
+### Nouvelle direction : progression paysage 3D immersive
+
+Decision produit du 23 avril 2026 :
+
+- la progression ne doit plus etre pensee comme une carte plate a terme
+- l'interface principale cible devient une vue de paysage 3D/360 par niveau
+- le personnage doit etre represente comme un heros cartoon-fantasy plus expressif, pas comme un pion simplifie
+- chaque niveau doit correspondre a un biome jouable visuellement : prairie, foret, desert, falaises, iles, chateau final
+- la carte DOM doit rester disponible comme fallback si WebGL, assets ou performances mobiles posent probleme
+
+Premiere implementation robuste :
+
+- `map-scene.js` construit maintenant une scene de paysage 3D par niveau selectionne
+- le heros est un personnage 3D procedural local, avec cape, visage, cheveux, couronne, bras et jambes animes
+- les paysages sont generes localement avec sol, chemin, sky dome, portails, landmarks et ambiance
+- les niveaux verrouilles restent visuellement distincts dans les portails
+- la progression reste pilotee par la logique existante, sans casser les profils, scores, badges, PWA ou Render
+
+Limite assumee :
+
+- cette premiere version ne remplace pas encore des assets d'artiste professionnels ou des skyboxes 360 generes
+- pour un rendu vraiment commercial, il faudra ensuite integrer des skyboxes/panoramas 360 ou des packs 3D stylises coherents

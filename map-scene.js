@@ -1,210 +1,432 @@
 import * as THREE from "./node_modules/three/build/three.module.js";
 
-const LEVEL_POSITIONS = [
-  { x: 15, y: 71, biome: "prairie", boss: false },
-  { x: 28, y: 64, biome: "prairie", boss: false },
-  { x: 21, y: 45, biome: "forest", boss: false },
-  { x: 36, y: 37, biome: "forest", boss: false },
-  { x: 45, y: 55, biome: "desert", boss: false },
-  { x: 60, y: 43, biome: "desert", boss: false },
-  { x: 49, y: 25, biome: "cliffs", boss: false },
-  { x: 77, y: 66, biome: "cliffs", boss: false },
-  { x: 84, y: 48, biome: "isles", boss: false },
-  { x: 85, y: 28, biome: "isles", boss: true }
+const LEVELS = [
+  { biome: "prairie", title: "Village des prairies", color: 0x75d96b, sky: 0x8edbff, accent: 0xffd76a, locked: 0x61708f },
+  { biome: "prairie", title: "Moulin dore", color: 0x8de36d, sky: 0x8edbff, accent: 0xffc35c, locked: 0x61708f },
+  { biome: "forest", title: "Pont des lanternes", color: 0x2f9e63, sky: 0x6fc8d8, accent: 0x9dffb8, locked: 0x445b65 },
+  { biome: "forest", title: "Foret magique", color: 0x238557, sky: 0x5fb7cf, accent: 0x8fffd2, locked: 0x445b65 },
+  { biome: "desert", title: "Ruines dorees", color: 0xe8b95a, sky: 0xffca7a, accent: 0xffe299, locked: 0x8e6d55 },
+  { biome: "desert", title: "Camp du canyon", color: 0xd79b4e, sky: 0xffb76d, accent: 0xffd061, locked: 0x8e6d55 },
+  { biome: "cliffs", title: "Falaises du veilleur", color: 0x7fb7a4, sky: 0xa9d7ff, accent: 0xc7e8ff, locked: 0x667982 },
+  { biome: "cliffs", title: "Tour de braise", color: 0x6b8f88, sky: 0x93bfe4, accent: 0xff9874, locked: 0x667982 },
+  { biome: "isles", title: "Iles du dragon", color: 0x429dd6, sky: 0x74c6ff, accent: 0xff8b5a, locked: 0x4d6d86 },
+  { biome: "castle", title: "Chateau du boss", color: 0x5d5f83, sky: 0x5b6ca8, accent: 0xff6d4a, locked: 0x4b4f69 }
 ];
 
-const MAP_WIDTH = 20;
-const MAP_HEIGHT = 12;
+const GATE_SPACING = 4.8;
 
-function percentToWorld(point) {
-  return new THREE.Vector3(
-    ((point.x / 100) - 0.5) * MAP_WIDTH,
-    (0.5 - (point.y / 100)) * MAP_HEIGHT,
-    0
-  );
-}
-
-function buildGlowTexture(inner, outer) {
+function buildRadialTexture(inner, outer, size = 256) {
   const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 256;
+  canvas.width = size;
+  canvas.height = size;
   const ctx = canvas.getContext("2d");
-  const gradient = ctx.createRadialGradient(128, 128, 18, 128, 128, 128);
+  const gradient = ctx.createRadialGradient(size / 2, size / 2, size * 0.08, size / 2, size / 2, size / 2);
   gradient.addColorStop(0, inner);
   gradient.addColorStop(1, outer);
   ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, 256, 256);
+  ctx.fillRect(0, 0, size, size);
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
   return texture;
 }
 
-function buildSparkleTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 128;
-  canvas.height = 128;
-  const ctx = canvas.getContext("2d");
-  ctx.translate(64, 64);
-  ctx.fillStyle = "rgba(255,255,255,0.95)";
-  for (let index = 0; index < 8; index += 1) {
-    ctx.rotate(Math.PI / 4);
-    ctx.fillRect(-3, -46, 6, 92);
+function makeMat(color, roughness = 0.75, metalness = 0.04) {
+  return new THREE.MeshStandardMaterial({ color, roughness, metalness });
+}
+
+function disposeObject(object) {
+  object.traverse((child) => {
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) {
+      if (Array.isArray(child.material)) child.material.forEach((mat) => mat.dispose());
+      else child.material.dispose();
+    }
+  });
+}
+
+function createHero() {
+  const hero = new THREE.Group();
+  hero.name = "Nova";
+
+  const skin = makeMat(0xffc994, 0.68);
+  const hair = makeMat(0x3d2315, 0.8);
+  const tunic = makeMat(0x2f75e8, 0.65);
+  const cape = makeMat(0xd64263, 0.72);
+  const boots = makeMat(0x2b214b, 0.7);
+  const gold = makeMat(0xffd15c, 0.5, 0.12);
+  const white = makeMat(0xffffff, 0.5);
+  const eye = makeMat(0x182145, 0.45);
+
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 0.72, 8, 18), tunic);
+  body.position.set(0, 1.2, 0);
+  body.scale.set(0.86, 1, 0.62);
+  hero.add(body);
+
+  const belt = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.025, 8, 32), gold);
+  belt.position.set(0, 0.94, 0);
+  belt.rotation.x = Math.PI / 2;
+  belt.scale.set(1.1, 0.7, 1);
+  hero.add(belt);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 24, 18), skin);
+  head.position.set(0, 1.88, 0.02);
+  head.scale.set(0.94, 1.04, 0.86);
+  hero.add(head);
+
+  const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.4, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.56), hair);
+  hairCap.position.set(0, 2.03, 0.01);
+  hairCap.scale.set(1.02, 0.72, 0.9);
+  hero.add(hairCap);
+
+  for (const x of [-0.13, 0.13]) {
+    const eyeMesh = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 8), eye);
+    eyeMesh.position.set(x, 1.9, 0.34);
+    hero.add(eyeMesh);
+
+    const glint = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), white);
+    glint.position.set(x + 0.012, 1.912, 0.366);
+    hero.add(glint);
   }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-  return texture;
+
+  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.008, 6, 18, Math.PI), eye);
+  smile.position.set(0, 1.78, 0.365);
+  smile.rotation.set(Math.PI, 0, 0);
+  hero.add(smile);
+
+  const crown = new THREE.Group();
+  for (let index = 0; index < 3; index += 1) {
+    const spike = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.18, 4), gold);
+    spike.position.set((index - 1) * 0.13, 2.28, 0.02);
+    crown.add(spike);
+  }
+  const crownBand = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.06, 0.32), gold);
+  crownBand.position.set(0, 2.16, 0.02);
+  crown.add(crownBand);
+  hero.add(crown);
+
+  const capeMesh = new THREE.Mesh(new THREE.ConeGeometry(0.48, 1.05, 4), cape);
+  capeMesh.position.set(0, 1.03, -0.26);
+  capeMesh.rotation.set(Math.PI * 0.12, Math.PI / 4, 0);
+  capeMesh.scale.set(1, 0.9, 0.34);
+  hero.add(capeMesh);
+
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.48, 6, 12), skin);
+    arm.position.set(side * 0.48, 1.25, 0.04);
+    arm.rotation.z = side * 0.36;
+    hero.add(arm);
+
+    const glove = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 8), gold);
+    glove.position.set(side * 0.57, 0.9, 0.09);
+    hero.add(glove);
+
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.095, 0.52, 6, 12), boots);
+    leg.position.set(side * 0.16, 0.42, 0.02);
+    leg.rotation.z = side * 0.05;
+    hero.add(leg);
+  }
+
+  const shadow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.62, 32),
+    new THREE.MeshBasicMaterial({ color: 0x111a38, transparent: true, opacity: 0.22 })
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 0.02;
+  hero.add(shadow);
+
+  hero.scale.setScalar(0.92);
+  hero.position.set(0, 0.02, 1.2);
+  return hero;
 }
 
-function createDriftSprites(texture, count, areaWidth, areaHeight, zBase, opacityRange) {
+function createTree(x, z, scale = 1) {
   const group = new THREE.Group();
-  for (let index = 0; index < count; index += 1) {
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: texture,
-      transparent: true,
-      depthWrite: false,
-      opacity: opacityRange[0] + Math.random() * (opacityRange[1] - opacityRange[0])
-    }));
-    const scale = 0.4 + Math.random() * 1.4;
-    sprite.scale.set(scale * 1.6, scale, 1);
-    sprite.position.set(
-      (Math.random() - 0.5) * areaWidth,
-      (Math.random() - 0.5) * areaHeight,
-      zBase + Math.random() * 1.8
-    );
-    sprite.userData = {
-      driftX: 0.02 + Math.random() * 0.04,
-      driftY: 0.01 + Math.random() * 0.03,
-      bob: Math.random() * Math.PI * 2
-    };
-    group.add(sprite);
-  }
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * scale, 0.12 * scale, 0.8 * scale, 8), makeMat(0x7a4d2a));
+  trunk.position.set(x, 0.4 * scale, z);
+  const crown = new THREE.Mesh(new THREE.ConeGeometry(0.45 * scale, 1.1 * scale, 8), makeMat(0x2c9f55));
+  crown.position.set(x, 1.15 * scale, z);
+  group.add(trunk, crown);
   return group;
 }
 
-function createLevelMarkers(texture) {
-  return LEVEL_POSITIONS.map((level, index) => {
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: texture,
-      transparent: true,
-      depthWrite: false,
-      color: level.boss ? 0xff7f62 : 0xffefae,
-      opacity: 0.8
-    }));
-    sprite.position.copy(percentToWorld(level));
-    sprite.position.z = 0.5;
-    const scale = level.boss ? 0.72 : 0.48;
-    sprite.scale.set(scale, scale, 1);
-    sprite.userData = {
-      index: index + 1,
-      baseScale: scale,
-      boss: level.boss
-    };
-    return sprite;
-  });
+function createCrystal(x, z, color = 0x8fffd2, scale = 1) {
+  const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.28 * scale, 0), makeMat(color, 0.42, 0.18));
+  crystal.position.set(x, 0.42 * scale, z);
+  crystal.rotation.y = Math.PI / 4;
+  return crystal;
 }
 
-function createBiomeHalo(texture, point, color, scaleX, scaleY, opacity) {
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: texture,
+function createCastle() {
+  const group = new THREE.Group();
+  const stone = makeMat(0xbfc7e8);
+  const roof = makeMat(0x6e3d82);
+  const gate = makeMat(0x3b2031);
+
+  const main = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.4, 0.9), stone);
+  main.position.y = 0.85;
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.62, 0.94), gate);
+  door.position.set(0, 0.34, 0.03);
+  group.add(main, door);
+
+  for (const x of [-0.95, 0.95]) {
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.38, 1.75, 12), stone);
+    tower.position.set(x, 0.95, 0);
+    const top = new THREE.Mesh(new THREE.ConeGeometry(0.46, 0.75, 12), roof);
+    top.position.set(x, 2.0, 0);
+    group.add(tower, top);
+  }
+
+  const orb = createCrystal(0, 0.1, 0xff7659, 1.3);
+  orb.position.y = 2.35;
+  group.add(orb);
+  group.position.set(0, 0, -5.4);
+  group.scale.setScalar(1.12);
+  return group;
+}
+
+function createPortal(index, level, selectedLevel, unlockedLevel, glowTexture) {
+  const group = new THREE.Group();
+  const isUnlocked = index + 1 <= unlockedLevel;
+  const isSelected = index + 1 === selectedLevel;
+  const color = isUnlocked ? level.accent : level.locked;
+
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(isSelected ? 0.54 : 0.42, 0.055, 10, 32),
+    makeMat(color, 0.42, 0.1)
+  );
+  ring.position.y = 1.05;
+  ring.rotation.x = Math.PI / 2;
+
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.5, 0.62, 0.18, 18),
+    makeMat(isUnlocked ? 0x425287 : 0x34394c)
+  );
+  base.position.y = 0.09;
+
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: glowTexture,
     transparent: true,
     depthWrite: false,
-    opacity,
+    opacity: isUnlocked ? (isSelected ? 0.9 : 0.45) : 0.12,
     color
   }));
-  const world = percentToWorld(point);
-  sprite.position.set(world.x, world.y, 0.18);
-  sprite.scale.set(scaleX, scaleY, 1);
-  return sprite;
+  glow.position.y = 1.05;
+  glow.scale.set(isSelected ? 1.8 : 1.2, isSelected ? 1.8 : 1.2, 1);
+
+  const label = new THREE.Mesh(
+    new THREE.BoxGeometry(0.34, 0.16, 0.05),
+    makeMat(isUnlocked ? 0xfff4c2 : 0x8890a8)
+  );
+  label.position.y = 0.42;
+
+  group.add(base, ring, glow, label);
+  group.position.set((index - selectedLevel + 1) * GATE_SPACING, 0, -5.2 - Math.abs(index - selectedLevel + 1) * 0.45);
+  group.userData = { level: index + 1, unlocked: isUnlocked };
+  return group;
+}
+
+function createBiomeSet(level, selectedLevel) {
+  const group = new THREE.Group();
+  const biome = level.biome;
+
+  if (biome === "prairie") {
+    group.add(createTree(-3.8, -3.9, 0.95), createTree(3.5, -4.2, 1.08), createTree(-5.4, -1.7, 0.78));
+    const windmill = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.25, 0.45), makeMat(0xf1dfbd));
+    windmill.position.set(2.5, 0.65, -3.8);
+    const blades = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.018, 6, 18), makeMat(0xffefb0));
+    blades.position.set(2.5, 1.48, -3.55);
+    group.add(windmill, blades);
+  } else if (biome === "forest") {
+    for (let index = 0; index < 8; index += 1) {
+      group.add(createTree(-5 + index * 1.4, -4.4 - (index % 2) * 0.5, 0.85 + (index % 3) * 0.12));
+    }
+    group.add(createCrystal(-1.7, -3.3, 0x7effd1, 0.9), createCrystal(2.1, -3.7, 0x9d9bff, 0.7));
+  } else if (biome === "desert") {
+    for (let index = 0; index < 5; index += 1) {
+      const column = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 1.1 + index * 0.12, 10), makeMat(0xdca75d));
+      column.position.set(-4 + index * 1.9, 0.55, -4.0 - (index % 2) * 0.35);
+      group.add(column);
+    }
+    group.add(createCrystal(3.8, -3.2, 0xffde86, 1));
+  } else if (biome === "cliffs") {
+    for (let index = 0; index < 6; index += 1) {
+      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.55 + index * 0.04, 0), makeMat(0x6e7f88));
+      rock.position.set(-4.6 + index * 1.8, 0.34, -4.2 - (index % 2) * 0.45);
+      rock.scale.y = 1.2 + (index % 2) * 0.55;
+      group.add(rock);
+    }
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 2.2, 12), makeMat(0xb9c5d4));
+    tower.position.set(3.6, 1.1, -4.4);
+    group.add(tower);
+  } else {
+    group.add(createCastle());
+    group.add(createCrystal(-3.6, -3.6, 0xff785f, 1.1), createCrystal(3.5, -3.4, 0xffb36a, 0.9));
+  }
+
+  const milestone = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 0.75, 8), makeMat(0xfff1bd));
+  milestone.position.set(-1.2, 0.38, -2.4);
+  milestone.userData.spin = selectedLevel;
+  group.add(milestone);
+
+  return group;
+}
+
+function createGround(level) {
+  const group = new THREE.Group();
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(9.8, 64),
+    makeMat(level.color)
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.01;
+  ground.scale.z = 0.82;
+
+  const path = new THREE.Mesh(
+    new THREE.PlaneGeometry(3.1, 10.8),
+    makeMat(level.biome === "desert" ? 0xf9d084 : 0xe8d19d)
+  );
+  path.rotation.x = -Math.PI / 2;
+  path.position.set(0, 0.006, -2.7);
+
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(7.8, 0.07, 8, 96),
+    makeMat(0xfff0b7, 0.6, 0.08)
+  );
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 0.03;
+  rim.scale.z = 0.72;
+
+  group.add(ground, path, rim);
+  return group;
+}
+
+function createSky(level, glowTexture, reducedMotion) {
+  const group = new THREE.Group();
+  const sky = new THREE.Mesh(
+    new THREE.SphereGeometry(18, 32, 16),
+    new THREE.MeshBasicMaterial({ color: level.sky, side: THREE.BackSide })
+  );
+  sky.position.y = 4;
+  group.add(sky);
+
+  const sun = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: glowTexture,
+    transparent: true,
+    depthWrite: false,
+    opacity: 0.55,
+    color: level.accent
+  }));
+  sun.position.set(-5.2, 8.2, -8);
+  sun.scale.set(5.4, 5.4, 1);
+  group.add(sun);
+
+  const cloudCount = reducedMotion ? 5 : 11;
+  for (let index = 0; index < cloudCount; index += 1) {
+    const cloud = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTexture,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.12 + Math.random() * 0.09,
+      color: 0xffffff
+    }));
+    cloud.position.set(-8 + Math.random() * 16, 4.2 + Math.random() * 3.2, -7 - Math.random() * 4);
+    cloud.scale.set(2.2 + Math.random() * 2.3, 1.0 + Math.random(), 1);
+    cloud.userData.speed = 0.004 + Math.random() * 0.008;
+    group.add(cloud);
+  }
+
+  return group;
 }
 
 export function createMapScene(mount, reducedMotion = false) {
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    alpha: true,
-    powerPreference: "high-performance"
-  });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setClearColor(0x000000, 0);
 
   mount.innerHTML = "";
   mount.appendChild(renderer.domElement);
 
+  const worldMap = mount.closest(".world-map");
+  worldMap?.classList.add("journey-3d-ready");
+
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-  camera.position.set(0, -2.8, 16);
-  camera.lookAt(0, 0, 0);
+  const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 80);
+  camera.position.set(0, 2.15, 7.1);
+  camera.lookAt(0, 1.15, -2.3);
 
-  const root = new THREE.Group();
-  root.rotation.x = -Math.PI / 7.5;
-  scene.add(root);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.78);
+  const key = new THREE.DirectionalLight(0xffefc8, 1.35);
+  key.position.set(-4.5, 7.8, 5.6);
+  const rim = new THREE.DirectionalLight(0x9edbff, 0.65);
+  rim.position.set(5.2, 3.8, -4.2);
+  scene.add(ambient, key, rim);
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 1.05);
-  const keyLight = new THREE.DirectionalLight(0xfff0c7, 1.2);
-  keyLight.position.set(-5, -8, 12);
-  const rimLight = new THREE.DirectionalLight(0x8fd7ff, 0.5);
-  rimLight.position.set(5, 6, 8);
-  scene.add(ambientLight, keyLight, rimLight);
+  const glowTexture = buildRadialTexture("rgba(255,246,196,1)", "rgba(255,246,196,0)");
+  const sparkleTexture = buildRadialTexture("rgba(255,255,255,1)", "rgba(255,255,255,0)");
+  const hero = createHero();
+  scene.add(hero);
 
-  const mapGlowTexture = buildGlowTexture("rgba(255,245,184,1)", "rgba(255,245,184,0)");
-  const coolGlowTexture = buildGlowTexture("rgba(170,240,255,1)", "rgba(170,240,255,0)");
-  const sparkleTexture = buildSparkleTexture();
-
-  const haloTop = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: mapGlowTexture,
-    transparent: true,
-    depthWrite: false,
-    opacity: 0.34
-  }));
-  haloTop.position.set(-0.4, 4.7, 1.2);
-  haloTop.scale.set(8.8, 4.4, 1);
-  root.add(haloTop);
-
-  const horizonMist = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: coolGlowTexture,
-    transparent: true,
-    depthWrite: false,
-    opacity: 0.26
-  }));
-  horizonMist.position.set(0, -0.4, 0.4);
-  horizonMist.scale.set(13.5, 4.8, 1);
-  root.add(horizonMist);
-
-  const clouds = createDriftSprites(mapGlowTexture, reducedMotion ? 6 : 12, 20, 10, -0.2, [0.1, 0.22]);
-  const sparkles = createDriftSprites(sparkleTexture, reducedMotion ? 10 : 24, 18, 10, 0.8, [0.12, 0.3]);
-  root.add(clouds, sparkles);
-
-  const biomeHalos = [
-    createBiomeHalo(mapGlowTexture, { x: 20, y: 60 }, 0xc6ff92, 4.4, 2.9, 0.16),
-    createBiomeHalo(coolGlowTexture, { x: 29, y: 40 }, 0x7ff3c0, 4.2, 2.8, 0.14),
-    createBiomeHalo(mapGlowTexture, { x: 51, y: 50 }, 0xffd77b, 4.8, 3.0, 0.18),
-    createBiomeHalo(coolGlowTexture, { x: 62, y: 35 }, 0xb7d9ff, 5.1, 3.1, 0.14),
-    createBiomeHalo(mapGlowTexture, { x: 84, y: 37 }, 0xff8c65, 4.2, 3.0, 0.18)
-  ];
-  biomeHalos.forEach((halo) => root.add(halo));
-
-  const markers = createLevelMarkers(mapGlowTexture);
-  markers.forEach((marker) => root.add(marker));
-
-  const selectedRing = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: coolGlowTexture,
-    transparent: true,
-    depthWrite: false,
-    opacity: 0.85,
-    color: 0xfff4b9
-  }));
-  selectedRing.scale.set(1.15, 1.15, 1);
-  root.add(selectedRing);
-
+  const portals = new THREE.Group();
+  const particles = new THREE.Group();
   const confetti = new THREE.Group();
-  root.add(confetti);
+  scene.add(portals, particles, confetti);
 
   let selectedLevel = 1;
   let unlockedLevel = 1;
+  let currentWorld = new THREE.Group();
   let rafId = 0;
-  let waveUntil = 0;
-  let pointerOffsetX = 0;
-  let pointerOffsetY = 0;
+  let pointerX = 0;
+  let pointerY = 0;
+  let heroState = "idle";
+  let walkUntil = 0;
+
+  function rebuildWorld() {
+    disposeObject(currentWorld);
+    scene.remove(currentWorld);
+    currentWorld = new THREE.Group();
+    const level = LEVELS[selectedLevel - 1];
+    currentWorld.add(createSky(level, glowTexture, reducedMotion));
+    currentWorld.add(createGround(level));
+    currentWorld.add(createBiomeSet(level, selectedLevel));
+    scene.add(currentWorld);
+
+    while (portals.children.length) {
+      const portal = portals.children.pop();
+      disposeObject(portal);
+    }
+    LEVELS.forEach((item, index) => portals.add(createPortal(index, item, selectedLevel, unlockedLevel, glowTexture)));
+  }
+
+  function spawnAmbientParticles() {
+    while (particles.children.length) {
+      const particle = particles.children.pop();
+      particle.material.dispose();
+    }
+    const level = LEVELS[selectedLevel - 1];
+    const count = reducedMotion ? 14 : 34;
+    for (let index = 0; index < count; index += 1) {
+      const particle = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: sparkleTexture,
+        transparent: true,
+        depthWrite: false,
+        opacity: 0.18 + Math.random() * 0.22,
+        color: level.accent
+      }));
+      particle.position.set((Math.random() - 0.5) * 12, 0.8 + Math.random() * 3.8, -1.5 - Math.random() * 8);
+      const scale = 0.08 + Math.random() * 0.12;
+      particle.scale.set(scale, scale, 1);
+      particle.userData.float = Math.random() * Math.PI * 2;
+      particles.add(particle);
+    }
+  }
+
+  function updateSelection() {
+    selectedLevel = Math.max(1, Math.min(LEVELS.length, selectedLevel));
+    unlockedLevel = Math.max(1, Math.min(LEVELS.length, unlockedLevel));
+    rebuildWorld();
+    spawnAmbientParticles();
+  }
 
   function resize() {
     const rect = mount.getBoundingClientRect();
@@ -215,147 +437,136 @@ export function createMapScene(mount, reducedMotion = false) {
     camera.updateProjectionMatrix();
   }
 
-  function updateMarkerStyles() {
-    markers.forEach((marker) => {
-      const isUnlocked = marker.userData.index <= unlockedLevel;
-      const isSelected = marker.userData.index === selectedLevel;
-      const baseScale = marker.userData.baseScale;
-      marker.material.opacity = isUnlocked ? (isSelected ? 0.95 : 0.55) : 0.18;
-      marker.material.color.set(
-        isSelected ? 0xffffff : marker.userData.boss ? 0xff8b73 : 0xffefae
-      );
-      const scale = isSelected ? baseScale * 1.45 : isUnlocked ? baseScale : baseScale * 0.8;
-      marker.scale.set(scale, scale, 1);
-    });
-
-    const selectedPoint = percentToWorld(LEVEL_POSITIONS[selectedLevel - 1]);
-    selectedRing.position.set(selectedPoint.x, selectedPoint.y, 0.38);
-  }
-
   function spawnVictoryConfetti() {
     while (confetti.children.length) {
       const child = confetti.children.pop();
       child.material.dispose();
     }
-
-    const origin = percentToWorld(LEVEL_POSITIONS[selectedLevel - 1]);
-    for (let index = 0; index < 28; index += 1) {
+    for (let index = 0; index < 38; index += 1) {
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
         map: sparkleTexture,
         transparent: true,
         depthWrite: false,
-        color: [0xffdd6a, 0xff8a6a, 0x95e8ff][index % 3],
-        opacity: 0.95
+        opacity: 0.95,
+        color: [0xffd75e, 0xff7a62, 0x82e6ff, 0xa5ff9d][index % 4]
       }));
-      const scale = 0.16 + Math.random() * 0.16;
-      sprite.scale.set(scale, scale, 1);
-      sprite.position.copy(origin);
-      sprite.position.z = 0.8;
-      sprite.userData = {
-        velocity: new THREE.Vector3(
-          (Math.random() - 0.5) * 0.08,
-          (Math.random() - 0.5) * 0.08,
-          0.04 + Math.random() * 0.05
-        ),
-        life: 1
-      };
+      sprite.position.set((Math.random() - 0.5) * 1.5, 2.3 + Math.random() * 1.2, 0.1);
+      sprite.scale.set(0.16, 0.16, 1);
+      sprite.userData.velocity = new THREE.Vector3((Math.random() - 0.5) * 0.08, 0.05 + Math.random() * 0.05, (Math.random() - 0.5) * 0.06);
+      sprite.userData.life = 1;
       confetti.add(sprite);
     }
   }
 
   function playUnlockAnimation(levelIndex) {
     unlockedLevel = Math.max(unlockedLevel, levelIndex);
-    waveUntil = performance.now() + 1300;
-    updateMarkerStyles();
+    walkUntil = performance.now() + 1200;
+    heroState = "walk";
+    updateSelection();
   }
 
   function playWaveAnimation() {
-    waveUntil = performance.now() + 1000;
+    walkUntil = performance.now() + 900;
+    heroState = "victory";
+  }
+
+  function onPointerMove(event) {
+    const rect = mount.getBoundingClientRect();
+    pointerX = (((event.clientX - rect.left) / Math.max(1, rect.width)) - 0.5) * 0.35;
+    pointerY = (((event.clientY - rect.top) / Math.max(1, rect.height)) - 0.5) * 0.2;
+  }
+
+  function onPointerLeave() {
+    pointerX = 0;
+    pointerY = 0;
+  }
+
+  function onClick(event) {
+    const rect = mount.getBoundingClientRect();
+    const third = rect.width / 3;
+    if (event.clientX - rect.left > third * 2 && selectedLevel < unlockedLevel) {
+      window.selectMapLevel?.(selectedLevel + 1, false);
+    }
+    if (event.clientX - rect.left < third && selectedLevel > 1) {
+      window.selectMapLevel?.(selectedLevel - 1, false);
+    }
   }
 
   function animate() {
     const now = performance.now();
     const time = now * 0.001;
+    const walking = heroState === "walk" && now < walkUntil;
+    const celebrating = heroState === "victory" && now < walkUntil;
+    if (!walking && !celebrating) heroState = "idle";
 
-    clouds.children.forEach((sprite, index) => {
-      sprite.position.x += Math.sin(time * sprite.userData.driftX + index) * 0.0025;
-      sprite.position.y += Math.cos(time * sprite.userData.driftY + sprite.userData.bob) * 0.002;
+    hero.position.y = 0.02 + Math.sin(time * (walking ? 8 : 2.1)) * (walking ? 0.055 : 0.018);
+    hero.rotation.y += ((pointerX * 0.45) - hero.rotation.y) * 0.06;
+    hero.children.forEach((child, index) => {
+      if (child.geometry?.type === "CapsuleGeometry" && index > 8) {
+        child.rotation.x = walking ? Math.sin(time * 9 + index) * 0.16 : 0;
+      }
+    });
+    if (celebrating) hero.rotation.z = Math.sin(time * 8) * 0.06;
+    else hero.rotation.z *= 0.92;
+
+    currentWorld.children.forEach((child) => {
+      child.children?.forEach((item) => {
+        if (item.userData?.speed) item.position.x += item.userData.speed;
+        if (item.position?.x > 9) item.position.x = -9;
+        if (item.userData?.spin) item.rotation.y += 0.01;
+      });
     });
 
-    sparkles.children.forEach((sprite, index) => {
-      sprite.material.opacity = 0.12 + ((Math.sin(time * 1.7 + index) + 1) * 0.08);
-      const base = 0.16 + (index % 3) * 0.04;
-      sprite.scale.set(base, base, 1);
+    particles.children.forEach((particle, index) => {
+      particle.position.y += Math.sin(time + particle.userData.float) * 0.0025;
+      particle.material.opacity = 0.16 + ((Math.sin(time * 1.8 + index) + 1) * 0.1);
     });
 
-    biomeHalos.forEach((halo, index) => {
-      const baseOpacity = index === 4 ? 0.18 : 0.13;
-      halo.material.opacity = baseOpacity + Math.sin(time * (1.1 + index * 0.08)) * 0.025;
+    portals.children.forEach((portal, index) => {
+      portal.rotation.y = Math.sin(time * 0.8 + index) * 0.08;
+      portal.position.y = Math.sin(time * 1.4 + index) * 0.035;
     });
-
-    markers.forEach((marker, index) => {
-      const pulse = marker.userData.index === selectedLevel ? 1 + Math.sin(time * 3.2) * 0.08 : 1;
-      const wave = now < waveUntil && marker.userData.index <= unlockedLevel
-        ? 1 + Math.sin(time * 7 + index) * 0.05
-        : 1;
-      const scale = marker.scale.x * 0 + marker.userData.baseScale * pulse * wave * (marker.userData.index === selectedLevel ? 1.45 : marker.userData.index <= unlockedLevel ? 1 : 0.8);
-      marker.scale.set(scale, scale, 1);
-    });
-
-    root.rotation.y += (pointerOffsetX - root.rotation.y) * 0.035;
-    root.rotation.x += (((-Math.PI / 7.5) + pointerOffsetY) - root.rotation.x) * 0.035;
-    camera.position.x += ((pointerOffsetX * 2.2) - camera.position.x) * 0.03;
-    camera.position.y += (((-2.8) + pointerOffsetY * 1.4) - camera.position.y) * 0.03;
-    camera.lookAt(0, 0, 0);
 
     confetti.children.forEach((sprite) => {
       sprite.userData.life -= 0.018;
       sprite.position.add(sprite.userData.velocity);
-      sprite.userData.velocity.z -= 0.0025;
+      sprite.userData.velocity.y -= 0.003;
       sprite.material.opacity = Math.max(0, sprite.userData.life);
-      sprite.scale.multiplyScalar(0.988);
     });
-
     for (let index = confetti.children.length - 1; index >= 0; index -= 1) {
-      const sprite = confetti.children[index];
-      if (sprite.userData.life <= 0) {
+      if (confetti.children[index].userData.life <= 0) {
+        const sprite = confetti.children[index];
         sprite.material.dispose();
         confetti.remove(sprite);
       }
     }
 
+    camera.position.x += (pointerX - camera.position.x) * 0.035;
+    camera.position.y += ((2.15 - pointerY) - camera.position.y) * 0.035;
+    camera.lookAt(0, 1.12, -2.6);
     renderer.render(scene, camera);
     rafId = requestAnimationFrame(animate);
   }
 
-  function onPointerMove(event) {
-    const rect = mount.getBoundingClientRect();
-    const normalizedX = ((event.clientX - rect.left) / Math.max(1, rect.width)) - 0.5;
-    const normalizedY = ((event.clientY - rect.top) / Math.max(1, rect.height)) - 0.5;
-    pointerOffsetX = normalizedX * 0.12;
-    pointerOffsetY = normalizedY * 0.08;
-  }
-
-  function onPointerLeave() {
-    pointerOffsetX = 0;
-    pointerOffsetY = 0;
-  }
-
+  updateSelection();
   resize();
-  updateMarkerStyles();
   animate();
   window.addEventListener("resize", resize);
   mount.addEventListener("pointermove", onPointerMove);
   mount.addEventListener("pointerleave", onPointerLeave);
+  mount.addEventListener("click", onClick);
 
   return {
     setSelectedLevel(level) {
-      selectedLevel = Math.max(1, Math.min(LEVEL_POSITIONS.length, level));
-      updateMarkerStyles();
+      if (level === selectedLevel) return;
+      selectedLevel = Math.max(1, Math.min(LEVELS.length, level));
+      walkUntil = performance.now() + 720;
+      heroState = "walk";
+      updateSelection();
     },
     setUnlockedLevel(level) {
-      unlockedLevel = Math.max(1, Math.min(LEVEL_POSITIONS.length, level));
-      updateMarkerStyles();
+      unlockedLevel = Math.max(1, Math.min(LEVELS.length, level));
+      updateSelection();
     },
     spawnVictoryConfetti,
     playUnlockAnimation,
@@ -366,6 +577,9 @@ export function createMapScene(mount, reducedMotion = false) {
       window.removeEventListener("resize", resize);
       mount.removeEventListener("pointermove", onPointerMove);
       mount.removeEventListener("pointerleave", onPointerLeave);
+      mount.removeEventListener("click", onClick);
+      worldMap?.classList.remove("journey-3d-ready");
+      disposeObject(scene);
       renderer.dispose();
       mount.innerHTML = "";
     }

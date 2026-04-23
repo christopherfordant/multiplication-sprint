@@ -1,11 +1,11 @@
-const CACHE_NAME = "multiplication-sprint-v20-premium-map-pass";
+const CACHE_NAME = "multiplication-sprint-v21-immersive-journey";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=20260423b",
+  "./style.css?v=20260423c",
   "./animations-enhanced.css?v=20260421c",
-  "./script.js?v=20260423b",
-  "./map-scene.js?v=20260423b",
+  "./script.js?v=20260423c",
+  "./map-scene.js?v=20260423c",
   "./node_modules/three/build/three.module.js",
   "./api-sync.js",
   "./checkpoint-animations.js",
