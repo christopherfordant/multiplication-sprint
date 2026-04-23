@@ -571,3 +571,48 @@ Passe appliquee :
 - la texture `variation-a.png` est maintenant utilisee dans le shell de la carte, le panneau de progression et l'overlay du monde
 - la scene `Three.js` l'utilise aussi pour donner un rendu plus peint au sol, au chemin et a une brume coloree legerement fantasy
 - le service worker a ete rebump pour que la nouvelle texture soit bien servie en PWA
+
+### Audit assets `assets/fourtout` : FBX / GLB / OBJ
+
+Constat reel au 23 avril 2026 :
+
+- les dossiers `FBX format`, `GLB format` et `OBJ format` contiennent chacun `153` modeles
+- pour une integration web/mobile sur `Three.js`, les `GLB` sont la meilleure source de verite
+- les `OBJ` restent utiles comme secours ou source de verification, mais ils sont moins pratiques
+- les `FBX` sont riches, mais plus couteux a integrer proprement pour cette passe
+
+Decision technique :
+
+- priorite aux `GLB` pour la carte 3D
+- maintien d'un fallback procedural si un modele ne charge pas
+- integration progressive par petits lots plutot qu'un import massif
+
+Modeles GLB retenus pour la passe carte :
+
+- `tree.glb`
+- `tree-pine.glb`
+- `rocks.glb`
+- `flowers.glb`
+- `mushrooms.glb`
+- `sign.glb`
+- `crate.glb`
+- `platform-fortified.glb`
+- `fence-rope.glb`
+- `flag.glb`
+- `chest.glb`
+- `door-large-open.glb`
+- `star.glb`
+
+Usage produit :
+
+- prairie : arbres, fleurs, panneau
+- foret : pins, champignons, panneau
+- desert : rochers, caisse, drapeau
+- falaises : plateforme fortifiee, corde, drapeau
+- chateau final : porte, coffre, etoile
+
+Garantie de robustesse :
+
+- si les `GLB` ne chargent pas, la scene garde ses elements proceduraux
+- le service worker a ete mis a jour pour precacher les modeles utilises
+- la logique de progression, profils, score et checkpoint reste inchangee

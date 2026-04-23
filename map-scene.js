@@ -1,4 +1,5 @@
 import * as THREE from "./node_modules/three/build/three.module.js";
+import { GLTFLoader } from "./node_modules/three/examples/jsm/loaders/GLTFLoader.js";
 
 const LEVELS = [
   { biome: "prairie", title: "Village des prairies", color: 0x75d96b, sky: 0x8edbff, accent: 0xffd76a, locked: 0x61708f },
@@ -16,6 +17,24 @@ const LEVELS = [
 const GATE_SPACING = 4.8;
 const PAINTERLY_TEXTURE_URL = "./assets/fourtout/textures/variation-a.png";
 let sharedPainterlyTexture = null;
+const gltfLoader = typeof window !== "undefined" ? new GLTFLoader() : null;
+const loadedModelScenes = new Map();
+const loadingModelPromises = new Map();
+
+const WORLD_MODEL_URLS = {
+  tree: new URL("./assets/fourtout/GLB%20format/tree.glb", import.meta.url).href,
+  treePine: new URL("./assets/fourtout/GLB%20format/tree-pine.glb", import.meta.url).href,
+  rocks: new URL("./assets/fourtout/GLB%20format/rocks.glb", import.meta.url).href,
+  flowers: new URL("./assets/fourtout/GLB%20format/flowers.glb", import.meta.url).href,
+  mushrooms: new URL("./assets/fourtout/GLB%20format/mushrooms.glb", import.meta.url).href,
+  sign: new URL("./assets/fourtout/GLB%20format/sign.glb", import.meta.url).href,
+  crate: new URL("./assets/fourtout/GLB%20format/crate.glb", import.meta.url).href,
+  platformFortified: new URL("./assets/fourtout/GLB%20format/platform-fortified.glb", import.meta.url).href,
+  fenceRope: new URL("./assets/fourtout/GLB%20format/fence-rope.glb", import.meta.url).href,
+  flag: new URL("./assets/fourtout/GLB%20format/flag.glb", import.meta.url).href,
+  chest: new URL("./assets/fourtout/GLB%20format/chest.glb", import.meta.url).href,
+  doorLargeOpen: new URL("./assets/fourtout/GLB%20format/door-large-open.glb", import.meta.url).href
+};
 
 function buildRadialTexture(inner, outer, size = 256) {
   const canvas = document.createElement("canvas");
@@ -55,6 +74,79 @@ function clonePainterlyTexture(repeatX = 1, repeatY = 1, rotation = 0) {
   texture.center.set(0.5, 0.5);
   texture.needsUpdate = true;
   return texture;
+}
+
+function prepareImportedScene(scene) {
+  scene.traverse((child) => {
+    if (child.isMesh) {
+      child.castShadow = false;
+      child.receiveShadow = true;
+      if (Array.isArray(child.material)) {
+        child.material = child.material.map((material) => material.clone());
+      } else if (child.material) {
+        child.material = child.material.clone();
+      }
+    }
+  });
+
+  const box = new THREE.Box3().setFromObject(scene);
+  const center = box.getCenter(new THREE.Vector3());
+  scene.position.x -= center.x;
+  scene.position.z -= center.z;
+  scene.position.y -= box.min.y;
+}
+
+function loadWorldModel(key) {
+  if (loadedModelScenes.has(key)) {
+    return Promise.resolve(loadedModelScenes.get(key));
+  }
+
+  if (loadingModelPromises.has(key)) {
+    return loadingModelPromises.get(key);
+  }
+
+  if (!gltfLoader || !WORLD_MODEL_URLS[key]) {
+    return Promise.resolve(null);
+  }
+
+  const promise = new Promise((resolve) => {
+    gltfLoader.load(
+      WORLD_MODEL_URLS[key],
+      (gltf) => {
+        const scene = gltf.scene || gltf.scenes?.[0] || null;
+        if (scene) {
+          prepareImportedScene(scene);
+          loadedModelScenes.set(key, scene);
+        }
+        resolve(scene);
+      },
+      undefined,
+      (error) => {
+        console.warn(`World model failed to load: ${key}`, error);
+        resolve(null);
+      }
+    );
+  });
+
+  loadingModelPromises.set(key, promise);
+  return promise;
+}
+
+function preloadWorldModels() {
+  return Promise.all(Object.keys(WORLD_MODEL_URLS).map((key) => loadWorldModel(key)));
+}
+
+function createModelProp(key, { x = 0, y = 0, z = 0, scale = 1, rotationY = 0 } = {}) {
+  const source = loadedModelScenes.get(key);
+  if (!source) {
+    return null;
+  }
+
+  const clone = source.clone(true);
+  clone.position.set(x, y, z);
+  clone.rotation.y = rotationY;
+  clone.scale.setScalar(scale);
+  return clone;
 }
 
 function makeMat(color, roughness = 0.75, metalness = 0.04) {
@@ -275,6 +367,12 @@ function createPortal(index, level, selectedLevel, unlockedLevel, glowTexture) {
 function createBiomeSet(level, selectedLevel) {
   const group = new THREE.Group();
   const biome = level.biome;
+  const addProp = (key, options) => {
+    const prop = createModelProp(key, options);
+    if (prop) {
+      group.add(prop);
+    }
+  };
 
   if (biome === "prairie") {
     group.add(createTree(-3.8, -3.9, 0.95), createTree(3.5, -4.2, 1.08), createTree(-5.4, -1.7, 0.78));
@@ -283,11 +381,19 @@ function createBiomeSet(level, selectedLevel) {
     const blades = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.018, 6, 18), makeMat(0xffefb0));
     blades.position.set(2.5, 1.48, -3.55);
     group.add(windmill, blades);
+    addProp("tree", { x: -4.8, z: -4.8, scale: 0.78, rotationY: Math.PI * 0.15 });
+    addProp("tree", { x: 4.6, z: -4.6, scale: 0.9, rotationY: -Math.PI * 0.08 });
+    addProp("flowers", { x: 0.8, z: -3.2, scale: 0.75, rotationY: Math.PI * 0.2 });
+    addProp("sign", { x: -1.8, z: -2.2, scale: 0.82, rotationY: Math.PI * 0.18 });
   } else if (biome === "forest") {
     for (let index = 0; index < 8; index += 1) {
       group.add(createTree(-5 + index * 1.4, -4.4 - (index % 2) * 0.5, 0.85 + (index % 3) * 0.12));
     }
     group.add(createCrystal(-1.7, -3.3, 0x7effd1, 0.9), createCrystal(2.1, -3.7, 0x9d9bff, 0.7));
+    addProp("treePine", { x: -3.6, z: -4.8, scale: 0.88, rotationY: Math.PI * 0.1 });
+    addProp("treePine", { x: 4.2, z: -4.6, scale: 0.78, rotationY: -Math.PI * 0.14 });
+    addProp("mushrooms", { x: 1.4, z: -3.1, scale: 0.72, rotationY: Math.PI * 0.35 });
+    addProp("sign", { x: -1.4, z: -2.5, scale: 0.76, rotationY: -Math.PI * 0.2 });
   } else if (biome === "desert") {
     for (let index = 0; index < 5; index += 1) {
       const column = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 1.1 + index * 0.12, 10), makeMat(0xdca75d));
@@ -295,6 +401,9 @@ function createBiomeSet(level, selectedLevel) {
       group.add(column);
     }
     group.add(createCrystal(3.8, -3.2, 0xffde86, 1));
+    addProp("rocks", { x: -3.9, z: -4.6, scale: 0.92, rotationY: Math.PI * 0.22 });
+    addProp("crate", { x: 2.8, z: -3.3, scale: 0.88, rotationY: -Math.PI * 0.16 });
+    addProp("flag", { x: 0.7, z: -4.3, scale: 0.76, rotationY: Math.PI * 0.08 });
   } else if (biome === "cliffs") {
     for (let index = 0; index < 6; index += 1) {
       const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.55 + index * 0.04, 0), makeMat(0x6e7f88));
@@ -305,9 +414,15 @@ function createBiomeSet(level, selectedLevel) {
     const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 2.2, 12), makeMat(0xb9c5d4));
     tower.position.set(3.6, 1.1, -4.4);
     group.add(tower);
+    addProp("platformFortified", { x: -2.2, z: -4.5, scale: 0.95, rotationY: Math.PI * 0.16 });
+    addProp("fenceRope", { x: 2.1, z: -3.8, scale: 0.82, rotationY: -Math.PI * 0.1 });
+    addProp("flag", { x: 3.8, z: -3.3, scale: 0.74, rotationY: Math.PI * 0.05 });
   } else {
     group.add(createCastle());
     group.add(createCrystal(-3.6, -3.6, 0xff785f, 1.1), createCrystal(3.5, -3.4, 0xffb36a, 0.9));
+    addProp("doorLargeOpen", { x: 0, z: -4.45, scale: 1.08 });
+    addProp("chest", { x: -2.4, z: -3.6, scale: 0.86, rotationY: Math.PI * 0.2 });
+    addProp("star", { x: 2.4, y: 0.18, z: -3.6, scale: 0.82, rotationY: Math.PI * 0.35 });
   }
 
   const milestone = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 0.75, 8), makeMat(0xfff1bd));
@@ -686,6 +801,9 @@ export function createMapScene(mount, reducedMotion = false) {
   updateSelection();
   resize();
   animate();
+  preloadWorldModels().then(() => {
+    updateSelection();
+  });
   window.addEventListener("resize", resize);
   mount.addEventListener("pointermove", onPointerMove);
   mount.addEventListener("pointerleave", onPointerLeave);
