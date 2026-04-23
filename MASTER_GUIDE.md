@@ -548,3 +548,26 @@ Decision de game design :
 - une scene 3D peut enrichir la progression, mais l'action principale doit toujours etre visible, nommee et facile a toucher sur mobile
 - la technologie actuelle `Three.js + DOM overlay` reste suffisante pour cette passe, car le probleme etait d'abord UX et integration, pas moteur 3D
 - pour viser un rendu reellement commercial, la prochaine marche doit etre l'integration d'assets externes coherents : personnage GLB anime, skyboxes 360, decors stylises et effets optimises mobile
+
+### Audit assets `assets/fourtout/textures`
+
+Constat reel au 23 avril 2026 :
+
+- le dossier ne contient actuellement qu'un seul asset : `variation-a.png`
+- format : `PNG`
+- dimensions : `512 x 512`
+- style visuel : texture peinte abstraite, douce, avec taches colorees et transitions diffuses
+- potentiel : tres bon comme matiere picturale de fond, overlay atmospherique, texture de panneau ou enrichissement leger des sols
+- limite : ce n'est pas une texture figurative de biome, donc elle ne peut pas a elle seule remplacer des decors ou des skyboxes
+
+Decision d'integration :
+
+- utiliser `variation-a.png` comme texture signature transversale
+- enrichir les panneaux de carte et le monde avec cette matiere, sans en faire une illustration forcee
+- conserver des fallbacks si la texture ne charge pas : les gradients et couleurs de base restent fonctionnels
+
+Passe appliquee :
+
+- la texture `variation-a.png` est maintenant utilisee dans le shell de la carte, le panneau de progression et l'overlay du monde
+- la scene `Three.js` l'utilise aussi pour donner un rendu plus peint au sol, au chemin et a une brume coloree legerement fantasy
+- le service worker a ete rebump pour que la nouvelle texture soit bien servie en PWA

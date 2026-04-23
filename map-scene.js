@@ -14,6 +14,8 @@ const LEVELS = [
 ];
 
 const GATE_SPACING = 4.8;
+const PAINTERLY_TEXTURE_URL = "./assets/fourtout/textures/variation-a.png";
+let sharedPainterlyTexture = null;
 
 function buildRadialTexture(inner, outer, size = 256) {
   const canvas = document.createElement("canvas");
@@ -30,6 +32,31 @@ function buildRadialTexture(inner, outer, size = 256) {
   return texture;
 }
 
+function getPainterlyTexture() {
+  if (sharedPainterlyTexture) {
+    return sharedPainterlyTexture;
+  }
+
+  const loader = new THREE.TextureLoader();
+  sharedPainterlyTexture = loader.load(PAINTERLY_TEXTURE_URL);
+  sharedPainterlyTexture.wrapS = THREE.RepeatWrapping;
+  sharedPainterlyTexture.wrapT = THREE.RepeatWrapping;
+  sharedPainterlyTexture.colorSpace = THREE.SRGBColorSpace;
+  return sharedPainterlyTexture;
+}
+
+function clonePainterlyTexture(repeatX = 1, repeatY = 1, rotation = 0) {
+  const texture = getPainterlyTexture().clone();
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.repeat.set(repeatX, repeatY);
+  texture.rotation = rotation;
+  texture.center.set(0.5, 0.5);
+  texture.needsUpdate = true;
+  return texture;
+}
+
 function makeMat(color, roughness = 0.75, metalness = 0.04) {
   return new THREE.MeshStandardMaterial({ color, roughness, metalness });
 }
@@ -38,8 +65,15 @@ function disposeObject(object) {
   object.traverse((child) => {
     if (child.geometry) child.geometry.dispose();
     if (child.material) {
-      if (Array.isArray(child.material)) child.material.forEach((mat) => mat.dispose());
-      else child.material.dispose();
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach((mat) => {
+        ["map", "alphaMap", "emissiveMap", "roughnessMap", "metalnessMap"].forEach((key) => {
+          if (mat[key]?.isTexture && mat[key] !== sharedPainterlyTexture) {
+            mat[key].dispose();
+          }
+        });
+        mat.dispose();
+      });
     }
   });
 }
@@ -286,9 +320,16 @@ function createBiomeSet(level, selectedLevel) {
 
 function createGround(level) {
   const group = new THREE.Group();
+  const painterlyGround = clonePainterlyTexture(2.3, 2.1, Math.PI * 0.08);
+  const painterlyPath = clonePainterlyTexture(1.2, 2.8, -Math.PI * 0.04);
   const ground = new THREE.Mesh(
     new THREE.CircleGeometry(9.8, 64),
-    makeMat(level.color)
+    new THREE.MeshStandardMaterial({
+      color: level.color,
+      map: painterlyGround,
+      roughness: 0.86,
+      metalness: 0.03
+    })
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.01;
@@ -296,7 +337,12 @@ function createGround(level) {
 
   const path = new THREE.Mesh(
     new THREE.PlaneGeometry(3.1, 10.8),
-    makeMat(level.biome === "desert" ? 0xf9d084 : 0xe8d19d)
+    new THREE.MeshStandardMaterial({
+      color: level.biome === "desert" ? 0xf9d084 : 0xe8d19d,
+      map: painterlyPath,
+      roughness: 0.72,
+      metalness: 0.02
+    })
   );
   path.rotation.x = -Math.PI / 2;
   path.position.set(0, 0.006, -2.7);
@@ -310,6 +356,22 @@ function createGround(level) {
   rim.scale.z = 0.72;
 
   group.add(ground, path, rim);
+
+  const painterlyMist = new THREE.Mesh(
+    new THREE.CircleGeometry(8.2, 48),
+    new THREE.MeshBasicMaterial({
+      map: clonePainterlyTexture(1.4, 1.4, Math.PI * 0.18),
+      transparent: true,
+      opacity: 0.11,
+      depthWrite: false,
+      color: level.accent
+    })
+  );
+  painterlyMist.rotation.x = -Math.PI / 2;
+  painterlyMist.position.y = 0.03;
+  painterlyMist.scale.set(1, 0.72, 1);
+  group.add(painterlyMist);
+
   return group;
 }
 
@@ -332,6 +394,17 @@ function createSky(level, glowTexture, reducedMotion) {
   sun.position.set(-5.2, 8.2, -8);
   sun.scale.set(5.4, 5.4, 1);
   group.add(sun);
+
+  const haze = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: clonePainterlyTexture(1, 1, 0),
+    transparent: true,
+    depthWrite: false,
+    opacity: 0.13,
+    color: level.accent
+  }));
+  haze.position.set(0, 4.8, -6.8);
+  haze.scale.set(16, 8.8, 1);
+  group.add(haze);
 
   const cloudCount = reducedMotion ? 5 : 11;
   for (let index = 0; index < cloudCount; index += 1) {

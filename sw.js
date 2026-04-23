@@ -1,16 +1,17 @@
-const CACHE_NAME = "multiplication-sprint-v22-journey-advance-ux";
+const CACHE_NAME = "multiplication-sprint-v23-fourtout-texture-pass";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=20260423d",
+  "./style.css?v=20260423e",
   "./animations-enhanced.css?v=20260421c",
-  "./script.js?v=20260423d",
-  "./map-scene.js?v=20260423d",
+  "./script.js?v=20260423e",
+  "./map-scene.js?v=20260423e",
   "./node_modules/three/build/three.module.js",
   "./api-sync.js",
   "./checkpoint-animations.js",
   "./assets/world/world-map-premium-v1.png",
   "./assets/characters/hero-mascot-premium-v2.png",
+  "./assets/fourtout/textures/variation-a.png",
   "./manifest.webmanifest",
   "./favicon.svg",
   "./icon-192.svg",

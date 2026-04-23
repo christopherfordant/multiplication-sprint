@@ -1263,8 +1263,11 @@ body.screen-shake .game-frame {
   border: 1px solid rgba(255, 255, 255, 0.68);
   border-radius: 28px;
   background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(255, 241, 196, 0.68)),
+    var(--fourtout-variation) center/cover no-repeat,
     linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 244, 206, 0.86)),
     radial-gradient(circle at 8% 20%, rgba(255, 211, 87, 0.36), transparent 34%);
+  background-blend-mode: soft-light, soft-light, normal, normal;
   box-shadow: 0 22px 55px rgba(6, 14, 48, 0.28);
   color: #19245d;
   pointer-events: auto;
@@ -1383,12 +1386,19 @@ body.screen-shake .game-frame {
 
 .map-screen-shell {
   background:
+    linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
+    var(--fourtout-variation) center/cover no-repeat,
     radial-gradient(circle at top, rgba(255, 226, 141, 0.2), transparent 20%),
     linear-gradient(180deg, rgba(9, 27, 88, 0.98), rgba(5, 12, 38, 0.98));
+  background-blend-mode: soft-light, soft-light, normal, normal;
 }
 
 .map-selected-card {
   position: relative;
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.95), rgba(238,244,255,0.84)),
+    var(--fourtout-variation) center/cover no-repeat;
+  background-blend-mode: normal, soft-light;
 }
 
 @media (max-width: 820px) {
@@ -1438,6 +1448,7 @@ body.screen-shake .game-frame {
   --fantasy-forest: #2f9b57;
   --fantasy-deep: #202b64;
   --fantasy-shadow: 0 26px 60px rgba(17, 31, 86, 0.2);
+  --fourtout-variation: url("./assets/fourtout/textures/variation-a.png");
 }
 
 body {
@@ -1979,10 +1990,13 @@ body::after {
 .world-map::after {
   z-index: 2;
   background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)),
+    var(--fourtout-variation) center/cover no-repeat,
     radial-gradient(circle at 50% 0, rgba(255, 232, 156, 0.18), transparent 26%),
     radial-gradient(circle at 82% 26%, rgba(255, 114, 87, 0.18), transparent 22%),
     linear-gradient(180deg, rgba(8, 18, 62, 0.03), rgba(8, 18, 62, 0.24));
   mix-blend-mode: screen;
+  opacity: 0.82;
 }
 
 .map-scene-mount {
