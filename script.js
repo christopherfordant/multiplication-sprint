@@ -539,7 +539,7 @@ async function loadMapSceneFactory() {
   }
 
   if (!state.mapSceneLoader) {
-    state.mapSceneLoader = import("./map-scene.js?v=20260423a")
+    state.mapSceneLoader = import("./map-scene.js?v=20260423b")
       .then(() => window.MultiplicationSprintMapScene?.createMapScene || null)
       .catch((error) => {
         console.error("Map scene module failed to load:", error);
@@ -1573,7 +1573,7 @@ async function loadMapSceneFactory() {
   }
 
   if (!state.mapSceneLoader) {
-    state.mapSceneLoader = import("./map-scene.js?v=20260423a")
+    state.mapSceneLoader = import("./map-scene.js?v=20260423b")
       .then((module) => module?.createMapScene || window.MultiplicationSprintMapScene?.createMapScene || null)
       .catch((error) => {
         console.error("Map scene module failed to load:", error);
@@ -1635,12 +1635,12 @@ function positionMascotOnMap(instant = false) {
   const targetX = `calc(${levelData.x}% - 41px)`;
   const targetY = `calc(${levelData.y}% - 56px)`;
   elements.mapMascot.style.display = "grid";
+  elements.mapMascot.style.zIndex = "5";
 
   if (!window.gsap || REDUCED_MOTION || instant) {
     elements.mapMascot.style.left = targetX;
     elements.mapMascot.style.top = targetY;
     elements.mapMascot.style.transform = "scaleX(1)";
-    elements.mapMascot.style.setProperty("--map-mascot-hop", "0px");
     setMapHeroState("idle");
     elements.mapMascot.dataset.lastX = String(levelData.x);
     return;
@@ -1655,31 +1655,30 @@ function positionMascotOnMap(instant = false) {
     onComplete: () => {
       setMapHeroState("idle");
       elements.mapMascot.dataset.lastX = String(levelData.x);
-      elements.mapMascot.style.setProperty("--map-mascot-hop", "0px");
       state.mapScene3D?.setSelectedLevel?.(state.selectedLevel);
     }
   })
     .to(elements.mapMascot, { left: targetX, top: targetY, duration: 0.72, ease: "power1.inOut" }, 0)
-    .to(elements.mapMascot, {
-      duration: 0.16,
-      repeat: 3,
-      yoyo: true,
-      ease: "sine.inOut",
-      onUpdate() {
-        const y = gsap.getProperty(elements.mapMascot, "y");
-        elements.mapMascot.style.setProperty("--map-mascot-hop", `${y}px`);
-      }
-    }, 0)
+    .to(elements.mapMascot, { y: -8, duration: 0.16, repeat: 3, yoyo: true, ease: "sine.inOut" }, 0)
     .set(elements.mapMascot, { y: 0 }, ">-0.01");
 }
 
 function renderMap() {
+  const nodeThemes = {
+    prairie: "village",
+    forest: "lanternes",
+    desert: "ruines",
+    cliffs: "tours",
+    isles: "boss"
+  };
+
   if (elements.mapNodes) {
     elements.mapNodes.innerHTML = MAP_LEVELS.map((levelData, index) => {
       const level = index + 1;
       const isUnlocked = level <= state.highestUnlockedLevel;
       const isSelected = level === state.selectedLevel;
       const starCount = state.levelStarsMap[index] || 0;
+      const starsText = `${"\u2605".repeat(starCount)}${"\u2606".repeat(Math.max(0, 3 - starCount))}`;
       return `
         <button
           class="map-node node-${levelData.biome} ${isUnlocked ? "" : "locked"} ${isSelected ? "selected" : ""} ${levelData.boss ? "boss-node" : ""}"
@@ -1689,9 +1688,10 @@ function renderMap() {
           aria-label="Niveau ${level}${isUnlocked ? "" : " verrouille"}"
           ${isUnlocked ? "" : "disabled"}
         >
+          <span class="node-biome">${nodeThemes[levelData.biome] || "zone"}</span>
           <span class="node-core">${level}</span>
           <span class="node-label">${levelData.landmark}</span>
-          <span class="node-stars">${"★".repeat(starCount)}${"☆".repeat(Math.max(0, 3 - starCount))}</span>
+          <span class="node-stars">${starsText}</span>
         </button>
       `;
     }).join("");

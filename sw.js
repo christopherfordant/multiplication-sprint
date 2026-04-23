@@ -1,11 +1,11 @@
-const CACHE_NAME = "multiplication-sprint-v19-map-stability";
+const CACHE_NAME = "multiplication-sprint-v20-premium-map-pass";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=20260423a",
+  "./style.css?v=20260423b",
   "./animations-enhanced.css?v=20260421c",
-  "./script.js?v=20260423a",
-  "./map-scene.js?v=20260423a",
+  "./script.js?v=20260423b",
+  "./map-scene.js?v=20260423b",
   "./node_modules/three/build/three.module.js",
   "./api-sync.js",
   "./checkpoint-animations.js",

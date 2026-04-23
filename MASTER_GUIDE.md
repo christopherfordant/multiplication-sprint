@@ -486,3 +486,19 @@ Decision structurante :
 
 - tant que la carte 3D premium n'a pas une integration totalement aboutie, la navigation de progression doit rester pilotee par le DOM interactif
 - la 3D enrichit, mais ne doit jamais devenir un point de rupture pour l'ouverture de la carte ou la selection de niveau
+
+### Passe visuelle premium appliquee ensuite
+
+Audit visuel de la carte stabilisee :
+
+- le fond illustre etait plus qualitatif, mais les niveaux semblaient encore poses par-dessus au lieu d'appartenir au monde
+- le chemin manquait de presence et de lisibilite narrative
+- les biomes etaient presents dans l'intention, mais pas assez incarnes dans le DOM
+- la scene `Three.js` apportait une ambiance, mais pas encore assez de profondeur percue
+
+Correctif applique :
+
+- restauration d'elements decoratifs DOM non interactifs : biomes, nuages, atlas, chateau final, landmarks
+- renforcement de la hierarchie des cases de niveau, des labels de biome, des etoiles et de l'etat selectionne
+- ajout de halos de biomes et d'un leger effet de parallaxe dans `map-scene.js`
+- maintien du principe de stabilite : la carte DOM reste la couche interactive principale, la 3D reste une couche d'ambiance

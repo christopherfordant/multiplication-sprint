@@ -103,6 +103,20 @@ function createLevelMarkers(texture) {
   });
 }
 
+function createBiomeHalo(texture, point, color, scaleX, scaleY, opacity) {
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+    opacity,
+    color
+  }));
+  const world = percentToWorld(point);
+  sprite.position.set(world.x, world.y, 0.18);
+  sprite.scale.set(scaleX, scaleY, 1);
+  return sprite;
+}
+
 export function createMapScene(mount, reducedMotion = false) {
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -160,6 +174,15 @@ export function createMapScene(mount, reducedMotion = false) {
   const sparkles = createDriftSprites(sparkleTexture, reducedMotion ? 10 : 24, 18, 10, 0.8, [0.12, 0.3]);
   root.add(clouds, sparkles);
 
+  const biomeHalos = [
+    createBiomeHalo(mapGlowTexture, { x: 20, y: 60 }, 0xc6ff92, 4.4, 2.9, 0.16),
+    createBiomeHalo(coolGlowTexture, { x: 29, y: 40 }, 0x7ff3c0, 4.2, 2.8, 0.14),
+    createBiomeHalo(mapGlowTexture, { x: 51, y: 50 }, 0xffd77b, 4.8, 3.0, 0.18),
+    createBiomeHalo(coolGlowTexture, { x: 62, y: 35 }, 0xb7d9ff, 5.1, 3.1, 0.14),
+    createBiomeHalo(mapGlowTexture, { x: 84, y: 37 }, 0xff8c65, 4.2, 3.0, 0.18)
+  ];
+  biomeHalos.forEach((halo) => root.add(halo));
+
   const markers = createLevelMarkers(mapGlowTexture);
   markers.forEach((marker) => root.add(marker));
 
@@ -180,6 +203,8 @@ export function createMapScene(mount, reducedMotion = false) {
   let unlockedLevel = 1;
   let rafId = 0;
   let waveUntil = 0;
+  let pointerOffsetX = 0;
+  let pointerOffsetY = 0;
 
   function resize() {
     const rect = mount.getBoundingClientRect();
@@ -263,6 +288,11 @@ export function createMapScene(mount, reducedMotion = false) {
       sprite.scale.set(base, base, 1);
     });
 
+    biomeHalos.forEach((halo, index) => {
+      const baseOpacity = index === 4 ? 0.18 : 0.13;
+      halo.material.opacity = baseOpacity + Math.sin(time * (1.1 + index * 0.08)) * 0.025;
+    });
+
     markers.forEach((marker, index) => {
       const pulse = marker.userData.index === selectedLevel ? 1 + Math.sin(time * 3.2) * 0.08 : 1;
       const wave = now < waveUntil && marker.userData.index <= unlockedLevel
@@ -271,6 +301,12 @@ export function createMapScene(mount, reducedMotion = false) {
       const scale = marker.scale.x * 0 + marker.userData.baseScale * pulse * wave * (marker.userData.index === selectedLevel ? 1.45 : marker.userData.index <= unlockedLevel ? 1 : 0.8);
       marker.scale.set(scale, scale, 1);
     });
+
+    root.rotation.y += (pointerOffsetX - root.rotation.y) * 0.035;
+    root.rotation.x += (((-Math.PI / 7.5) + pointerOffsetY) - root.rotation.x) * 0.035;
+    camera.position.x += ((pointerOffsetX * 2.2) - camera.position.x) * 0.03;
+    camera.position.y += (((-2.8) + pointerOffsetY * 1.4) - camera.position.y) * 0.03;
+    camera.lookAt(0, 0, 0);
 
     confetti.children.forEach((sprite) => {
       sprite.userData.life -= 0.018;
@@ -292,10 +328,25 @@ export function createMapScene(mount, reducedMotion = false) {
     rafId = requestAnimationFrame(animate);
   }
 
+  function onPointerMove(event) {
+    const rect = mount.getBoundingClientRect();
+    const normalizedX = ((event.clientX - rect.left) / Math.max(1, rect.width)) - 0.5;
+    const normalizedY = ((event.clientY - rect.top) / Math.max(1, rect.height)) - 0.5;
+    pointerOffsetX = normalizedX * 0.12;
+    pointerOffsetY = normalizedY * 0.08;
+  }
+
+  function onPointerLeave() {
+    pointerOffsetX = 0;
+    pointerOffsetY = 0;
+  }
+
   resize();
   updateMarkerStyles();
   animate();
   window.addEventListener("resize", resize);
+  mount.addEventListener("pointermove", onPointerMove);
+  mount.addEventListener("pointerleave", onPointerLeave);
 
   return {
     setSelectedLevel(level) {
@@ -313,6 +364,8 @@ export function createMapScene(mount, reducedMotion = false) {
     destroy() {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", resize);
+      mount.removeEventListener("pointermove", onPointerMove);
+      mount.removeEventListener("pointerleave", onPointerLeave);
       renderer.dispose();
       mount.innerHTML = "";
     }
